@@ -6,13 +6,6 @@ appId: com.pickle.glass
 # The user-facing application name
 productName: Glass
 
-# Publish configuration for GitHub releases
-publish:
-    provider: github
-    owner: pickle-com
-    repo: glass
-    releaseType: draft
-
 # Protocols configuration for deep linking
 protocols:
     name: PickleGlass Protocol
@@ -36,31 +29,6 @@ asarUnpack:
     - "src/ui/assets/SystemAudioDump"
     - "**/node_modules/sharp/**/*"
     - "**/node_modules/@img/**/*"
-
-# Windows configuration
-win:
-    icon: src/ui/assets/logo.ico
-    target:
-        - target: nsis
-          arch: x64
-        - target: portable
-          arch: x64
-    requestedExecutionLevel: asInvoker
-    signAndEditExecutable: true
-    cscLink: build\certs\glass-dev.pfx
-    cscKeyPassword: "${env.CSC_KEY_PASSWORD}"
-    signtoolOptions:
-      certificateSubjectName: "Glass Dev Code Signing"
-
-# NSIS installer configuration for Windows
-nsis:
-    oneClick: false
-    perMachine: false
-    allowToChangeInstallationDirectory: true
-    deleteAppDataOnUninstall: true
-    createDesktopShortcut: always
-    createStartMenuShortcut: true
-    shortcutName: Glass
 
 # macOS specific configuration
 mac:
