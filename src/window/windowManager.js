@@ -447,9 +447,7 @@ function createFeatureWindows(header, namesToCreate) {
                 }
                 const listenLoadOptions = { query: { view: 'listen' } };
                 listen.loadFile(path.join(__dirname, '../ui/app/content.html'), listenLoadOptions);
-                if (!app.isPackaged) {
-                    listen.webContents.openDevTools({ mode: 'detach' });
-                }
+
                 windowPool.set('listen', listen);
                 break;
             }
@@ -466,9 +464,7 @@ function createFeatureWindows(header, namesToCreate) {
                 ask.loadFile(path.join(__dirname, '../ui/app/content.html'), askLoadOptions);
                 
                 // Open DevTools in development
-                if (!app.isPackaged) {
-                    ask.webContents.openDevTools({ mode: 'detach' });
-                }
+
                 windowPool.set('ask', ask);
                 break;
             }
@@ -486,9 +482,7 @@ function createFeatureWindows(header, namesToCreate) {
                         .catch(console.error);
                 windowPool.set('settings', settings);  
 
-                if (!app.isPackaged) {
-                    settings.webContents.openDevTools({ mode: 'detach' });
-                }
+
                 break;
             }
 
@@ -513,9 +507,7 @@ function createFeatureWindows(header, namesToCreate) {
                 shortcutEditor.loadFile(path.join(__dirname, '../ui/app/content.html'), loadOptions);
 
                 windowPool.set('shortcut-settings', shortcutEditor);
-                if (!app.isPackaged) {
-                    shortcutEditor.webContents.openDevTools({ mode: 'detach' });
-                }
+
                 break;
             }
         }
@@ -633,10 +625,7 @@ function createWindows() {
     header.setContentProtection(isContentProtectionOn);
     header.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
     
-    // Open DevTools in development
-    if (!app.isPackaged) {
-        header.webContents.openDevTools({ mode: 'detach' });
-    }
+    
 
     header.on('focus', () => {
         console.log('[WindowManager] Header gained focus');
