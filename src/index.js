@@ -610,19 +610,19 @@ async function startWebStack() {
   process.env.pickleglass_API_PORT = apiPort.toString();
   process.env.pickleglass_API_URL = `http://localhost:${apiPort}`;
   process.env.pickleglass_WEB_PORT = frontendPort.toString();
-  process.env.pickleglass_WEB_URL = `http://localhost:${frontendPort}`;
+  process.env.jarvis_WEB_URL = `http://localhost:${frontendPort}`;
 
   console.log(`🌍 Environment variables set:`, {
     pickleglass_API_URL: process.env.pickleglass_API_URL,
-    pickleglass_WEB_URL: process.env.pickleglass_WEB_URL
+    jarvis_WEB_URL: process.env.jarvis_WEB_URL
   });
 
-  const createBackendApp = require('../pickleglass_web/backend_node');
+  const createBackendApp = require('../jarvis_web/backend_node');
   const nodeApi = createBackendApp(eventBridge);
 
   const staticDir = app.isPackaged
     ? path.join(process.resourcesPath, 'out')
-    : path.join(__dirname, '..', 'pickleglass_web', 'out');
+    : path.join(__dirname, '..', 'jarvis_web', 'out');
 
   const fs = require('fs');
 
@@ -630,7 +630,7 @@ async function startWebStack() {
     console.error(`============================================================`);
     console.error(`[ERROR] Frontend build directory not found!`);
     console.error(`Path: ${staticDir}`);
-    console.error(`Please run 'npm run build' inside the 'pickleglass_web' directory first.`);
+    console.error(`Please run 'npm run build' inside the 'jarvis_web' directory first.`);
     console.error(`============================================================`);
     app.quit();
     return;

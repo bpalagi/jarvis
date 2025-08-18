@@ -95,8 +95,8 @@ out/
 .specstory/
 
 data/pickleglass.db
-pickleglass_web/backend/__pycache__/
-pickleglass_web/venv/
+jarvis_web/backend/__pycache__/
+jarvis_web/venv/
 
 # Node / JS
 node_modules/

@@ -78,7 +78,7 @@ graph TD
 
 ---
 
-## II. Web Dashboard Architecture (`pickleglass_web/`)
+## II. Web Dashboard Architecture (`jarvis_web/`)
 
 This section details the architecture of the Next.js web application, which serves as the user-facing dashboard for account management and cloud data viewing.
 

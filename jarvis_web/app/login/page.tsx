@@ -32,7 +32,7 @@ export default function LoginPage() {
           try {
             const idToken = await user.getIdToken()
             
-            const deepLinkUrl = `pickleglass://auth-success?` + new URLSearchParams({
+            const deepLinkUrl = `jarvis://auth-success?` + new URLSearchParams({
               uid: user.uid,
               email: user.email || '',
               displayName: user.displayName || '',
@@ -112,7 +112,7 @@ export default function LoginPage() {
             <button
               onClick={() => {
                 if (isElectronMode) {
-                  window.location.href = 'pickleglass://auth-success?uid=default_user&email=contact@pickle.com&displayName=Default%20User'
+                  window.location.href = 'jarvis://auth-success?uid=default_user&email=contact@pickle.com&displayName=Default%20User'
                 } else {
                   router.push('/settings')
                 }

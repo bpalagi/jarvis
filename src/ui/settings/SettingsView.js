@@ -1423,7 +1423,7 @@ export class SettingsView extends LitElement {
                                 </button>
                                 `
                             : html`
-                                <button class="settings-button half-width" @click=${this.handleUsePicklesKey}>
+                                <button class="settings-button half-width" @click=${this.handleUseJarvisKey}>
                                     <span>Login</span>
                                 </button>
                                 `

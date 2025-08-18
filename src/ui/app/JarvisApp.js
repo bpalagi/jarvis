@@ -75,7 +75,7 @@ export class PickleGlassApp extends LitElement {
         super.connectedCallback();
         
         if (window.api) {
-            window.api.pickleGlassApp.onClickThroughToggled((_, isEnabled) => {
+            window.api.jarvisApp.onClickThroughToggled((_, isEnabled) => {
                 this._isClickThrough = isEnabled;
             });
         }
@@ -84,7 +84,7 @@ export class PickleGlassApp extends LitElement {
     disconnectedCallback() {
         super.disconnectedCallback();
         if (window.api) {
-            window.api.pickleGlassApp.removeAllClickThroughListeners();
+            window.api.jarvisApp.removeAllClickThroughListeners();
         }
     }
 
