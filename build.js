@@ -40,7 +40,7 @@ async function watch() {
             entryPoints: [point.in],
             outfile: `${point.out}.js`,
         })));
-        
+
         console.log('Watching for changes...');
         await Promise.all(contexts.map(context => context.watch()));
 
@@ -54,4 +54,5 @@ if (process.argv.includes('--watch')) {
     watch();
 } else {
     build();
-} 
+}
+

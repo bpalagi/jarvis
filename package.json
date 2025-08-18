@@ -2,13 +2,12 @@
     "name": "jarvis",
     "productName": "Jarvis",
     "version": "0.2.4",
-    "description": "Cl*ely for Free",
+    "description": "AI Assistant",
     "main": "src/index.js",
     "scripts": {
         "setup": "npm install && cd jarvis_web && npm install && npm run build && cd .. && npm start",
         "start": "npm run build:renderer && electron .",
         "package": "npm run build:all && electron-builder --dir",
-        
         "postinstall": "electron-builder install-app-deps",
         "build:renderer": "node build.js",
         "build:web": "cd jarvis_web && npm run build && cd ..",
@@ -23,7 +22,7 @@
         "contextual ai"
     ],
     "author": {
-        "name": "Jarvis"
+        "name": "TangLLC"
     },
     "license": "GPL-3.0",
     "dependencies": {

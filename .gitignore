@@ -1,64 +1,10 @@
-# Logs
-src/data
-logs
-*.log
-npm-debug.log*
-
-# Diagnostic reports (https://nodejs.org/api/report.html)
-report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
-
-# Runtime data
-pids
-*.pid
-*.seed
-*.pid.lock
-.DS_Store
-
-# node-waf configuration
-.lock-wscript
-
-# Compiled binary addons (https://nodejs.org/api/addons.html)
-build/Release
-
 # Dependency directories
 node_modules/
-
-# TypeScript cache
-*.tsbuildinfo
-
-# Optional npm cache directory
-.npm
-
-# Optional REPL history
-.node_repl_history
-
-# Output of 'npm pack'
-*.tgz
-
-# dotenv environment variables file
-.env
-.env.test
 
 # next.js build output
 .next
 
-# Electron-Forge
-out/
-
-data/jarvis.db
-
-# Node / JS
-node_modules/
-npm-debug.log
-
-# Database
-data/*.db
-data/*.db-journal
-data/*.db-shm
-data/*.db-wal
-
 # Build output
 out/
-dist/
 build/
-public/build/ 
+
