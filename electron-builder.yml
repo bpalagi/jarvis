@@ -1,16 +1,16 @@
 # electron-builder.yml
 
 # The unique application ID
-appId: com.pickle.glass
+appId: com.user.jarvis
 
 # The user-facing application name
-productName: Glass
+productName: Jarvis
 
 # Protocols configuration for deep linking
 protocols:
-    name: PickleGlass Protocol
+    name: Jarvis Protocol
     schemes: 
-        - pickleglass
+        - jarvis
 
 # List of files to be included in the app package
 files:

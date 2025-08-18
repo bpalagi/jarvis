@@ -7,27 +7,6 @@ const shortcutsService = require('../features/shortcuts/shortcutsService');
 const internalBridge = require('../bridge/internalBridge');
 const permissionRepository = require('../features/common/repositories/permission');
 
-/* ────────────────[ GLASS BYPASS ]─────────────── */
-let liquidGlass;
-const isLiquidGlassSupported = () => {
-    if (process.platform !== 'darwin') {
-        return false;
-    }
-    const majorVersion = parseInt(os.release().split('.')[0], 10);
-    // return majorVersion >= 25; // macOS 26+ (Darwin 25+)
-    return majorVersion >= 26; // See you soon!
-};
-let shouldUseLiquidGlass = isLiquidGlassSupported();
-if (shouldUseLiquidGlass) {
-    try {
-        liquidGlass = require('electron-liquid-glass');
-    } catch (e) {
-        console.warn('Could not load optional dependency "electron-liquid-glass". The feature will be disabled.');
-        shouldUseLiquidGlass = false;
-    }
-}
-/* ────────────────[ GLASS BYPASS ]─────────────── */
-
 let isContentProtectionOn = true;
 let lastVisibleWindows = new Set(['header']);
 
@@ -467,21 +446,7 @@ function createFeatureWindows(header, namesToCreate) {
                     listen.setWindowButtonVisibility(false);
                 }
                 const listenLoadOptions = { query: { view: 'listen' } };
-                if (!shouldUseLiquidGlass) {
-                    listen.loadFile(path.join(__dirname, '../ui/app/content.html'), listenLoadOptions);
-                }
-                else {
-                    listenLoadOptions.query.glass = 'true';
-                    listen.loadFile(path.join(__dirname, '../ui/app/content.html'), listenLoadOptions);
-                    listen.webContents.once('did-finish-load', () => {
-                        const viewId = liquidGlass.addView(listen.getNativeWindowHandle());
-                        if (viewId !== -1) {
-                            liquidGlass.unstable_setVariant(viewId, liquidGlass.GlassMaterialVariant.bubbles);
-                            // liquidGlass.unstable_setScrim(viewId, 1);
-                            // liquidGlass.unstable_setSubdued(viewId, 1);
-                        }
-                    });
-                }
+                listen.loadFile(path.join(__dirname, '../ui/app/content.html'), listenLoadOptions);
                 if (!app.isPackaged) {
                     listen.webContents.openDevTools({ mode: 'detach' });
                 }
@@ -498,21 +463,7 @@ function createFeatureWindows(header, namesToCreate) {
                     ask.setWindowButtonVisibility(false);
                 }
                 const askLoadOptions = { query: { view: 'ask' } };
-                if (!shouldUseLiquidGlass) {
-                    ask.loadFile(path.join(__dirname, '../ui/app/content.html'), askLoadOptions);
-                }
-                else {
-                    askLoadOptions.query.glass = 'true';
-                    ask.loadFile(path.join(__dirname, '../ui/app/content.html'), askLoadOptions);
-                    ask.webContents.once('did-finish-load', () => {
-                        const viewId = liquidGlass.addView(ask.getNativeWindowHandle());
-                        if (viewId !== -1) {
-                            liquidGlass.unstable_setVariant(viewId, liquidGlass.GlassMaterialVariant.bubbles);
-                            // liquidGlass.unstable_setScrim(viewId, 1);
-                            // liquidGlass.unstable_setSubdued(viewId, 1);
-                        }
-                    });
-                }
+                ask.loadFile(path.join(__dirname, '../ui/app/content.html'), askLoadOptions);
                 
                 // Open DevTools in development
                 if (!app.isPackaged) {
@@ -531,23 +482,8 @@ function createFeatureWindows(header, namesToCreate) {
                     settings.setWindowButtonVisibility(false);
                 }
                 const settingsLoadOptions = { query: { view: 'settings' } };
-                if (!shouldUseLiquidGlass) {
-                    settings.loadFile(path.join(__dirname,'../ui/app/content.html'), settingsLoadOptions)
+                settings.loadFile(path.join(__dirname,'../ui/app/content.html'), settingsLoadOptions)
                         .catch(console.error);
-                }
-                else {
-                    settingsLoadOptions.query.glass = 'true';
-                    settings.loadFile(path.join(__dirname,'../ui/app/content.html'), settingsLoadOptions)
-                        .catch(console.error);
-                    settings.webContents.once('did-finish-load', () => {
-                        const viewId = liquidGlass.addView(settings.getNativeWindowHandle());
-                        if (viewId !== -1) {
-                            liquidGlass.unstable_setVariant(viewId, liquidGlass.GlassMaterialVariant.bubbles);
-                            // liquidGlass.unstable_setScrim(viewId, 1);
-                            // liquidGlass.unstable_setSubdued(viewId, 1);
-                        }
-                    });
-                }
                 windowPool.set('settings', settings);  
 
                 if (!app.isPackaged) {
@@ -574,18 +510,7 @@ function createFeatureWindows(header, namesToCreate) {
                 }
 
                 const loadOptions = { query: { view: 'shortcut-settings' } };
-                if (!shouldUseLiquidGlass) {
-                    shortcutEditor.loadFile(path.join(__dirname, '../ui/app/content.html'), loadOptions);
-                } else {
-                    loadOptions.query.glass = 'true';
-                    shortcutEditor.loadFile(path.join(__dirname, '../ui/app/content.html'), loadOptions);
-                    shortcutEditor.webContents.once('did-finish-load', () => {
-                        const viewId = liquidGlass.addView(shortcutEditor.getNativeWindowHandle());
-                        if (viewId !== -1) {
-                            liquidGlass.unstable_setVariant(viewId, liquidGlass.GlassMaterialVariant.bubbles);
-                        }
-                    });
-                }
+                shortcutEditor.loadFile(path.join(__dirname, '../ui/app/content.html'), loadOptions);
 
                 windowPool.set('shortcut-settings', shortcutEditor);
                 if (!app.isPackaged) {
@@ -680,21 +605,7 @@ function createWindows() {
         header.setWindowButtonVisibility(false);
     }
     const headerLoadOptions = {};
-    if (!shouldUseLiquidGlass) {
-        header.loadFile(path.join(__dirname, '../ui/app/header.html'), headerLoadOptions);
-    }
-    else {
-        headerLoadOptions.query = { glass: 'true' };
-        header.loadFile(path.join(__dirname, '../ui/app/header.html'), headerLoadOptions);
-        header.webContents.once('did-finish-load', () => {
-            const viewId = liquidGlass.addView(header.getNativeWindowHandle());
-            if (viewId !== -1) {
-                liquidGlass.unstable_setVariant(viewId, liquidGlass.GlassMaterialVariant.bubbles);
-                // liquidGlass.unstable_setScrim(viewId, 1); 
-                // liquidGlass.unstable_setSubdued(viewId, 1);
-            }
-        });
-    }
+    header.loadFile(path.join(__dirname, '../ui/app/header.html'), headerLoadOptions);
     windowPool.set('header', header);
     layoutManager = new WindowLayoutManager(windowPool);
     movementManager = new SmoothMovementManager(windowPool);

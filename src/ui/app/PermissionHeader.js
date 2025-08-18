@@ -236,29 +236,7 @@ export class PermissionHeader extends LitElement {
             cursor: not-allowed;
         }
         
-        /* ────────────────[ GLASS BYPASS ]─────────────── */
-        :host-context(body.has-glass) .container,
-        :host-context(body.has-glass) .action-button,
-        :host-context(body.has-glass) .continue-button,
-        :host-context(body.has-glass) .close-button {
-            background: transparent !important;
-            border: none !important;
-            box-shadow: none !important;
-            filter: none !important;
-            backdrop-filter: none !important;
-        }
-
-        :host-context(body.has-glass) .container::after,
-        :host-context(body.has-glass) .action-button::after,
-        :host-context(body.has-glass) .continue-button::after {
-            display: none !important;
-        }
-
-        :host-context(body.has-glass) .action-button:hover,
-        :host-context(body.has-glass) .continue-button:hover,
-        :host-context(body.has-glass) .close-button:hover {
-            background: transparent !important;
-        }
+        
     `;
 
     static properties = {

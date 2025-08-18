@@ -290,54 +290,7 @@ export class MainHeader extends LitElement {
             height: 16px;
         }
         /* ────────────────[ GLASS BYPASS ]─────────────── */
-        :host-context(body.has-glass) .header,
-        :host-context(body.has-glass) .listen-button,
-        :host-context(body.has-glass) .header-actions,
-        :host-context(body.has-glass) .settings-button {
-            background: transparent !important;
-            filter: none !important;
-            box-shadow: none !important;
-            backdrop-filter: none !important;
-        }
-        :host-context(body.has-glass) .icon-box {
-            background: transparent !important;
-            border: none !important;
-        }
-
-        :host-context(body.has-glass) .header::before,
-        :host-context(body.has-glass) .header::after,
-        :host-context(body.has-glass) .listen-button::before,
-        :host-context(body.has-glass) .listen-button::after {
-            display: none !important;
-        }
-
-        :host-context(body.has-glass) .header-actions:hover,
-        :host-context(body.has-glass) .settings-button:hover,
-        :host-context(body.has-glass) .listen-button:hover::before {
-            background: transparent !important;
-        }
-        :host-context(body.has-glass) * {
-            animation: none !important;
-            transition: none !important;
-            transform: none !important;
-            filter: none !important;
-            backdrop-filter: none !important;
-            box-shadow: none !important;
-        }
-
-        :host-context(body.has-glass) .header,
-        :host-context(body.has-glass) .listen-button,
-        :host-context(body.has-glass) .header-actions,
-        :host-context(body.has-glass) .settings-button,
-        :host-context(body.has-glass) .icon-box {
-            border-radius: 0 !important;
-        }
-        :host-context(body.has-glass) {
-            animation: none !important;
-            transition: none !important;
-            transform: none !important;
-            will-change: auto !important;
-        }
+        
         `;
 
     constructor() {

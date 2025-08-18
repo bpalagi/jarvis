@@ -453,29 +453,7 @@ export class SettingsView extends LitElement {
             color: rgba(255,255,255,0.4);
         }
             
-        /* ────────────────[ GLASS BYPASS ]─────────────── */
-        :host-context(body.has-glass) {
-            animation: none !important;
-            transition: none !important;
-            transform: none !important;
-            will-change: auto !important;
-        }
-
-        :host-context(body.has-glass) * {
-            background: transparent !important;
-            filter: none !important;
-            backdrop-filter: none !important;
-            box-shadow: none !important;
-            outline: none !important;
-            border: none !important;
-            border-radius: 0 !important;
-            transition: none !important;
-            animation: none !important;
-        }
-
-        :host-context(body.has-glass) .settings-container::before {
-            display: none !important;
-        }
+        
     `;
 
 

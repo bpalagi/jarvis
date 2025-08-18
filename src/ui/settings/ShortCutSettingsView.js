@@ -69,24 +69,7 @@ export class ShortcutSettingsView extends LitElement {
         .settings-button.danger:hover{background:rgba(255,59,48,.15);
         }
 
-        /* ────────────────[ GLASS BYPASS ]─────────────── */
-        :host-context(body.has-glass) {
-          animation: none !important;
-          transition: none !important;
-          transform: none !important;
-          will-change: auto !important;
-        }
-        :host-context(body.has-glass) * {
-          background: transparent !important;   /* 요청한 투명 처리 */
-          filter: none !important;
-          backdrop-filter: none !important;
-          box-shadow: none !important;
-          outline: none !important;
-          border: none !important;
-          border-radius: 0 !important;
-          transition: none !important;
-          animation: none !important;
-        }
+        
     `;
 
     static properties = {
