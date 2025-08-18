@@ -1,25 +1,4 @@
 const PROVIDERS = {
-  'openai': {
-      name: 'OpenAI',
-      handler: () => require("./providers/openai"),
-      llmModels: [
-          { id: 'gpt-4.1', name: 'GPT-4.1' },
-      ],
-      sttModels: [
-          { id: 'gpt-4o-mini-transcribe', name: 'GPT-4o Mini Transcribe' }
-      ],
-  },
-
-  'openai-jarvis': {
-      name: 'OpenAI (Jarvis)',
-      handler: () => require("./providers/openai"),
-      llmModels: [
-          { id: 'gpt-4.1-jarvis', name: 'GPT-4.1 (jarvis)' },
-      ],
-      sttModels: [
-          { id: 'gpt-4o-mini-transcribe-jarvis', name: 'GPT-4o Mini Transcribe (jarvis)' }
-      ],
-  },
   'gemini': {
       name: 'Gemini',
       handler: () => require("./providers/gemini"),
@@ -30,59 +9,13 @@ const PROVIDERS = {
           { id: 'gemini-live-2.5-flash-preview', name: 'Gemini Live 2.5 Flash' }
       ],
   },
-  'anthropic': {
-      name: 'Anthropic',
-      handler: () => require("./providers/anthropic"),
-      llmModels: [
-          { id: 'claude-3-5-sonnet-20241022', name: 'Claude 3.5 Sonnet' },
-      ],
-      sttModels: [],
-  },
-  'deepgram': {
-    name: 'Deepgram',
-    handler: () => require("./providers/deepgram"),
-    llmModels: [],
-    sttModels: [
-        { id: 'nova-3', name: 'Nova-3 (General)' },
-        ],
-    },
-  'ollama': {
-      name: 'Ollama (Local)',
-      handler: () => require("./providers/ollama"),
-      llmModels: [], // Dynamic models populated from installed Ollama models
-      sttModels: [], // Ollama doesn't support STT yet
-  },
-  'whisper': {
-      name: 'Whisper (Local)',
-      handler: () => {
-          // This needs to remain a function due to its conditional logic for renderer/main process
-          if (typeof window === 'undefined') {
-              const { WhisperProvider } = require("./providers/whisper");
-              return new WhisperProvider();
-          }
-          // Return a dummy object for the renderer process
-          return {
-              validateApiKey: async () => ({ success: true }), // Mock validate for renderer
-              createSTT: () => { throw new Error('Whisper STT is only available in main process'); },
-          };
-      },
-      llmModels: [],
-      sttModels: [
-          { id: 'whisper-tiny', name: 'Whisper Tiny (39M)' },
-          { id: 'whisper-base', name: 'Whisper Base (74M)' },
-          { id: 'whisper-small', name: 'Whisper Small (244M)' },
-          { id: 'whisper-medium', name: 'Whisper Medium (769M)' },
-      ],
-  },
 };
 
 function sanitizeModelId(model) {
-  return (typeof model === 'string') ? model.replace(/-jarvis$/, '') : model;
+  return model;
 }
 
 function createSTT(provider, opts) {
-  if (provider === 'openai-jarvis') provider = 'openai';
-  
   const handler = PROVIDERS[provider]?.handler();
   if (!handler?.createSTT) {
       throw new Error(`STT not supported for provider: ${provider}`);
@@ -94,8 +27,6 @@ function createSTT(provider, opts) {
 }
 
 function createLLM(provider, opts) {
-  if (provider === 'openai-jarvis') provider = 'openai';
-
   const handler = PROVIDERS[provider]?.handler();
   if (!handler?.createLLM) {
       throw new Error(`LLM not supported for provider: ${provider}`);
@@ -107,8 +38,6 @@ function createLLM(provider, opts) {
 }
 
 function createStreamingLLM(provider, opts) {
-  if (provider === 'openai-jarvis') provider = 'openai';
-  
   const handler = PROVIDERS[provider]?.handler();
   if (!handler?.createStreamingLLM) {
       throw new Error(`Streaming LLM not supported for provider: ${provider}`);
@@ -123,26 +52,13 @@ function getProviderClass(providerId) {
     const providerConfig = PROVIDERS[providerId];
     if (!providerConfig) return null;
     
-    // Handle special cases for jarvis providers
-    let actualProviderId = providerId;
-    if (providerId === 'openai-jarvis') {
-        actualProviderId = 'openai';
-    }
-    
-    // The handler function returns the module, from which we get the class.
     const module = providerConfig.handler();
     
-    // Map provider IDs to their actual exported class names
     const classNameMap = {
-        'openai': 'OpenAIProvider',
-        'anthropic': 'AnthropicProvider',
         'gemini': 'GeminiProvider',
-        'deepgram': 'DeepgramProvider',
-        'ollama': 'OllamaProvider',
-        'whisper': 'WhisperProvider'
     };
     
-    const className = classNameMap[actualProviderId];
+    const className = classNameMap[providerId];
     return className ? module[className] : null;
 }
 

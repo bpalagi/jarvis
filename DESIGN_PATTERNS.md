@@ -12,7 +12,7 @@ These are the fundamental rules that govern the entire application.
 
 1.  **Centralized Data Logic**: All data persistence logic (reading from or writing to a database) is centralized within the **Electron Main Process**. The UI layers (both Electron's renderer and the web dashboard) are forbidden from accessing data sources directly.
 2.  **Feature-Based Modularity**: Code is organized by feature (`src/features`) to promote encapsulation and separation of concerns. A new feature should be self-contained within its own directory.
-3.  **AI Provider Abstraction**: AI model interactions are abstracted using a **Factory Pattern**. To add a new provider (e.g., a new LLM), you only need to create a new provider module that conforms to the base interface in `src/common/ai/providers/` and register it in the `factory.js`.
+4.  **AI Provider Abstraction**: AI model interactions are abstracted using a **Factory Pattern**. Currently, only Gemini is supported as an AI provider.
 4.  **Single Source of Truth for Schema**: The schema for the local SQLite database is defined in a single location: `src/common/config/schema.js`. Any change to the database structure **must** be updated here.
 
 ---

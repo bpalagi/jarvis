@@ -150,7 +150,7 @@ class SttService {
     }
 
     async initializeSttSessions(language = 'en') {
-        const effectiveLanguage = process.env.OPENAI_TRANSCRIBE_LANG || language || 'en';
+        const effectiveLanguage = language || 'en';
 
         const modelInfo = await modelStateService.getCurrentModelInfo('stt');
         if (!modelInfo || !modelInfo.apiKey) {
@@ -164,48 +164,8 @@ class SttService {
                 console.log('[SttService] Ignoring message - session already closed');
                 return;
             }
-            // console.log('[SttService] handleMyMessage', message);
             
-            if (this.modelInfo.provider === 'whisper') {
-                // Whisper STT emits 'transcription' events with different structure
-                if (message.text && message.text.trim()) {
-                    const finalText = message.text.trim();
-                    
-                    // Filter out Whisper noise transcriptions
-                    const noisePatterns = [
-                        '[BLANK_AUDIO]',
-                        '[INAUDIBLE]',
-                        '[MUSIC]',
-                        '[SOUND]',
-                        '[NOISE]',
-                        '(BLANK_AUDIO)',
-                        '(INAUDIBLE)',
-                        '(MUSIC)',
-                        '(SOUND)',
-                        '(NOISE)'
-                    ];
-                    
-                    const isNoise = noisePatterns.some(pattern => 
-                        finalText.includes(pattern) || finalText === pattern
-                    );
-                    
-                    
-                    if (!isNoise && finalText.length > 2) {
-                        this.debounceMyCompletion(finalText);
-                        
-                        this.sendToRenderer('stt-update', {
-                            speaker: 'Me',
-                            text: finalText,
-                            isPartial: false,
-                            isFinal: true,
-                            timestamp: Date.now(),
-                        });
-                    } else {
-                        console.log(`[Whisper-Me] Filtered noise: "${finalText}"`);
-                    }
-                }
-                return;
-            } else if (this.modelInfo.provider === 'gemini') {
+            if (this.modelInfo.provider === 'gemini') {
                 if (!message.serverContent?.modelTurn) {
                     console.log('[Gemini STT - Me]', JSON.stringify(message, null, 2));
                 }
@@ -235,37 +195,6 @@ class SttService {
                     isFinal: false,
                     timestamp: Date.now(),
                 });
-                
-            // Deepgram 
-            } else if (this.modelInfo.provider === 'deepgram') {
-                const text = message.channel?.alternatives?.[0]?.transcript;
-                if (!text || text.trim().length === 0) return;
-
-                const isFinal = message.is_final;
-                console.log(`[SttService-Me-Deepgram] Received: isFinal=${isFinal}, text="${text}"`);
-
-                if (isFinal) {
-                    // 최종 결과가 도착하면, 현재 진행중인 부분 발화는 비우고
-                    // 최종 텍스트로 debounce를 실행합니다.
-                    this.myCurrentUtterance = ''; 
-                    this.debounceMyCompletion(text); 
-                } else {
-                    // 부분 결과(interim)인 경우, 화면에 실시간으로 업데이트합니다.
-                    if (this.myCompletionTimer) clearTimeout(this.myCompletionTimer);
-                    this.myCompletionTimer = null;
-
-                    this.myCurrentUtterance = text;
-                    
-                    const continuousText = (this.myCompletionBuffer + ' ' + this.myCurrentUtterance).trim();
-
-                    this.sendToRenderer('stt-update', {
-                        speaker: 'Me',
-                        text: continuousText,
-                        isPartial: true,
-                        isFinal: false,
-                        timestamp: Date.now(),
-                    });
-                }
                 
             } else {
                 const type = message.type;
@@ -307,47 +236,7 @@ class SttService {
                 return;
             }
             
-            if (this.modelInfo.provider === 'whisper') {
-                // Whisper STT emits 'transcription' events with different structure
-                if (message.text && message.text.trim()) {
-                    const finalText = message.text.trim();
-                    
-                    // Filter out Whisper noise transcriptions
-                    const noisePatterns = [
-                        '[BLANK_AUDIO]',
-                        '[INAUDIBLE]',
-                        '[MUSIC]',
-                        '[SOUND]',
-                        '[NOISE]',
-                        '(BLANK_AUDIO)',
-                        '(INAUDIBLE)',
-                        '(MUSIC)',
-                        '(SOUND)',
-                        '(NOISE)'
-                    ];
-                    
-                    const isNoise = noisePatterns.some(pattern => 
-                        finalText.includes(pattern) || finalText === pattern
-                    );
-                    
-                    
-                    // Only process if it's not noise, not a false positive, and has meaningful content
-                    if (!isNoise && finalText.length > 2) {
-                        this.debounceTheirCompletion(finalText);
-                        
-                        this.sendToRenderer('stt-update', {
-                            speaker: 'Them',
-                            text: finalText,
-                            isPartial: false,
-                            isFinal: true,
-                            timestamp: Date.now(),
-                        });
-                    } else {
-                        console.log(`[Whisper-Them] Filtered noise: "${finalText}"`);
-                    }
-                }
-                return;
-            } else if (this.modelInfo.provider === 'gemini') {
+            if (this.modelInfo.provider === 'gemini') {
                 if (!message.serverContent?.modelTurn) {
                     console.log('[Gemini STT - Them]', JSON.stringify(message, null, 2));
                 }
@@ -377,33 +266,6 @@ class SttService {
                     isFinal: false,
                     timestamp: Date.now(),
                 });
-
-            // Deepgram
-            } else if (this.modelInfo.provider === 'deepgram') {
-                const text = message.channel?.alternatives?.[0]?.transcript;
-                if (!text || text.trim().length === 0) return;
-
-                const isFinal = message.is_final;
-
-                if (isFinal) {
-                    this.theirCurrentUtterance = ''; 
-                    this.debounceTheirCompletion(text); 
-                } else {
-                    if (this.theirCompletionTimer) clearTimeout(this.theirCompletionTimer);
-                    this.theirCompletionTimer = null;
-
-                    this.theirCurrentUtterance = text;
-                    
-                    const continuousText = (this.theirCompletionBuffer + ' ' + this.theirCurrentUtterance).trim();
-
-                    this.sendToRenderer('stt-update', {
-                        speaker: 'Them',
-                        text: continuousText,
-                        isPartial: true,
-                        isFinal: false,
-                        timestamp: Date.now(),
-                    });
-                }
 
             } else {
                 const type = message.type;
@@ -457,11 +319,8 @@ class SttService {
         const sttOptions = {
             apiKey: this.modelInfo.apiKey,
             language: effectiveLanguage,
-            usePortkey: this.modelInfo.provider === 'openai-jarvis',
-            portkeyVirtualKey: this.modelInfo.provider === 'openai-jarvis' ? this.modelInfo.apiKey : undefined,
         };
 
-        // Add sessionType for Whisper to distinguish between My and Their sessions
         const myOptions = { ...sttOptions, callbacks: mySttConfig.callbacks, sessionType: 'my' };
         const theirOptions = { ...sttOptions, callbacks: theirSttConfig.callbacks, sessionType: 'their' };
 
@@ -475,7 +334,6 @@ class SttService {
         // ── Setup keep-alive heart-beats ────────────────────────────────────────
         if (this.keepAliveInterval) clearInterval(this.keepAliveInterval);
         this.keepAliveInterval = setInterval(() => {
-            this._sendKeepAlive();
         }, KEEP_ALIVE_INTERVAL_MS);
 
         // ── Schedule session auto-renewal ───────────────────────────────────────
@@ -490,24 +348,6 @@ class SttService {
         }, SESSION_RENEW_INTERVAL_MS);
 
         return true;
-    }
-
-    /**
-     * Send a lightweight keep-alive to prevent idle disconnects.
-     * Currently only implemented for OpenAI provider because Gemini's SDK
-     * already performs its own heart-beats.
-     */
-    _sendKeepAlive() {
-        if (!this.isSessionActive()) return;
-
-        if (this.modelInfo?.provider === 'openai') {
-            try {
-                this.mySttSession?.keepAlive?.();
-                this.theirSttSession?.keepAlive?.();
-            } catch (err) {
-                console.error('[SttService] keepAlive error:', err.message);
-            }
-        }
     }
 
     /**
@@ -563,8 +403,6 @@ class SttService {
         let payload;
         if (modelInfo.provider === 'gemini') {
             payload = { audio: { data, mimeType: mimeType || 'audio/pcm;rate=24000' } };
-        } else if (modelInfo.provider === 'deepgram') {
-            payload = Buffer.from(data, 'base64'); 
         } else {
             payload = data;
         }
@@ -588,8 +426,6 @@ class SttService {
         let payload;
         if (modelInfo.provider === 'gemini') {
             payload = { audio: { data, mimeType: mimeType || 'audio/pcm;rate=24000' } };
-        } else if (modelInfo.provider === 'deepgram') {
-            payload = Buffer.from(data, 'base64');
         } else {
             payload = data;
         }
@@ -688,8 +524,6 @@ class SttService {
                         let payload;
                         if (modelInfo.provider === 'gemini') {
                             payload = { audio: { data: base64Data, mimeType: 'audio/pcm;rate=24000' } };
-                        } else if (modelInfo.provider === 'deepgram') {
-                            payload = Buffer.from(base64Data, 'base64');
                         } else {
                             payload = base64Data;
                         }

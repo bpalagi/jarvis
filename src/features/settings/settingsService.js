@@ -6,7 +6,6 @@ const { getStoredApiKey, getStoredProvider, windowPool } = require('../../window
 
 // New imports for common services
 const modelStateService = require('../common/services/modelStateService');
-const localAIManager = require('../common/services/localAIManager');
 
 const store = new Store({
     name: 'jarvis-settings',
@@ -49,23 +48,6 @@ async function clearApiKey(provider) {
 async function setSelectedModel(type, modelId) {
     const success = await modelStateService.handleSetSelectedModel(type, modelId);
     return { success };
-}
-
-// LocalAI facade functions
-async function getOllamaStatus() {
-    return localAIManager.getServiceStatus('ollama');
-}
-
-async function ensureOllamaReady() {
-    const status = await localAIManager.getServiceStatus('ollama');
-    if (!status.installed || !status.running) {
-        await localAIManager.startService('ollama');
-    }
-    return { success: true };
-}
-
-async function shutdownOllama() {
-    return localAIManager.stopService('ollama');
 }
 
 
@@ -329,7 +311,7 @@ async function deletePreset(id) {
     }
 }
 
-async function saveApiKey(apiKey, provider = 'openai') {
+async function saveApiKey(apiKey, provider) {
     try {
         // Use ModelStateService as the single source of truth for API key management
         const modelStateService = global.modelStateService;
@@ -361,11 +343,8 @@ async function removeApiKey() {
             throw new Error('ModelStateService not initialized');
         }
         
-        // Remove all API keys for all providers
-        const providers = ['openai', 'anthropic', 'gemini', 'ollama', 'whisper'];
-        for (const provider of providers) {
-            await modelStateService.removeApiKey(provider);
-        }
+        // Remove only Gemini API key
+        await modelStateService.removeApiKey('gemini');
         
         // Notify windows
         BrowserWindow.getAllWindows().forEach(win => {
@@ -374,7 +353,7 @@ async function removeApiKey() {
             }
         });
         
-        console.log('[SettingsService] API key removed for all providers');
+        console.log('[SettingsService] API key removed for Gemini');
         return { success: true };
     } catch (error) {
         console.error('[SettingsService] Error removing API key:', error);
@@ -460,8 +439,4 @@ module.exports = {
     getModelSettings,
     clearApiKey,
     setSelectedModel,
-    // Ollama facade
-    getOllamaStatus,
-    ensureOllamaReady,
-    shutdownOllama
 };

@@ -196,7 +196,7 @@ export class WelcomeHeader extends LitElement {
                     <div class="option-content">
                         <div class="option-title">Quick start with default API key</div>
                         <div class="option-description">
-                            100% free with Jarvis's OpenAI key<br/>No personal data collected<br/>Sign up with Google in seconds
+                            100% free with Jarvis's Gemini key<br/>No personal data collected<br/>Sign up with Google in seconds
                         </div>
                     </div>
                     <button class="action-button" @click=${this.loginCallback}>

@@ -3,7 +3,6 @@ const Store = require('electron-store');
 const { PROVIDERS, getProviderClass } = require('../ai/factory');
 const encryptionService = require('./encryptionService');
 const providerSettingsRepository = require('../repositories/providerSettings');
-const ollamaModelRepository = require('../repositories/ollamaModel');
 
 class ModelStateService extends EventEmitter {
     constructor() {
@@ -14,98 +13,26 @@ class ModelStateService extends EventEmitter {
 
     async initialize() {
         console.log('[ModelStateService] Initializing one-time setup...');
-        await this._initializeEncryption();
-        await this._runMigrations();
-        this.setupLocalAIStateSync();
-        await this._autoSelectAvailableModels([], true);
+        await this._autoSelectAvailableModels();
         console.log('[ModelStateService] One-time setup complete.');
     }
 
-    async _initializeEncryption() {
-        try {
-            const rows = await providerSettingsRepository.getRawApiKeys();
-            if (rows.some(r => r.api_key && encryptionService.looksEncrypted(r.api_key))) {
-                console.log('[ModelStateService] Encrypted keys detected, initializing encryption...');
-                // No userId needed for encryption key initialization in local-only mode
-                await encryptionService.initializeKey();
-            } else {
-                console.log('[ModelStateService] No encrypted keys detected, skipping encryption initialization.');
-            }
-        } catch (err) {
-            console.warn('[ModelStateService] Error while checking encrypted keys:', err.message);
-        }
-    }
+    async _autoSelectAvailableModels() {
+        const selectedModels = await this.getSelectedModels();
 
-    async _runMigrations() {
-        console.log('[ModelStateService] Checking for data migrations...');
-        const userId = 'default_user'; // Use a default user ID for local mode
-        
-        try {
-            const sqliteClient = require('./sqliteClient');
-            const db = sqliteClient.getDb();
-            const tableExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='user_model_selections'").get();
-            
-            if (tableExists) {
-                const selections = db.prepare('SELECT * FROM user_model_selections WHERE uid = ?').get(userId);
-                if (selections) {
-                    console.log('[ModelStateService] Migrating from user_model_selections table...');
-                    if (selections.llm_model) {
-                        const llmProvider = this.getProviderForModel(selections.llm_model, 'llm');
-                        if (llmProvider) {
-                            await this.setSelectedModel('llm', selections.llm_model);
-                        }
-                    }
-                    if (selections.stt_model) {
-                        const sttProvider = this.getProviderForModel(selections.stt_model, 'stt');
-                        if (sttProvider) {
-                            await this.setSelectedModel('stt', selections.stt_model);
-                        }
-                    }
-                    db.prepare('DROP TABLE user_model_selections').run();
-                    console.log('[ModelStateService] user_model_selections migration complete.');
-                }
+        if (!selectedModels.llm) {
+            const availableLlmModels = await this.getAvailableModels('llm');
+            if (availableLlmModels.length > 0) {
+                await this.setSelectedModel('llm', availableLlmModels[0].id);
             }
-        } catch (error) {
-            console.error('[ModelStateService] user_model_selections migration failed:', error);
         }
 
-        try {
-            const legacyData = this.store.get(`users.${userId}`);
-            if (legacyData && legacyData.apiKeys) {
-                console.log('[ModelStateService] Migrating from electron-store...');
-                for (const [provider, apiKey] of Object.entries(legacyData.apiKeys)) {
-                    if (apiKey && PROVIDERS[provider]) {
-                        await this.setApiKey(provider, apiKey);
-                    }
-                }
-                if (legacyData.selectedModels?.llm) {
-                    await this.setSelectedModel('llm', legacyData.selectedModels.llm);
-                }
-                if (legacyData.selectedModels?.stt) {
-                    await this.setSelectedModel('stt', legacyData.selectedModels.stt);
-                }
-                this.store.delete(`users.${userId}`);
-                console.log('[ModelStateService] electron-store migration complete.');
+        if (!selectedModels.stt) {
+            const availableSttModels = await this.getAvailableModels('stt');
+            if (availableSttModels.length > 0) {
+                await this.setSelectedModel('stt', availableSttModels[0].id);
             }
-        } catch (error) {
-            console.error('[ModelStateService] electron-store migration failed:', error);
         }
-    }
-    
-    setupLocalAIStateSync() {
-        const localAIManager = require('./localAIManager');
-        localAIManager.on('state-changed', (service, status) => {
-            this.handleLocalAIStateChange(service, status);
-        });
-    }
-
-    async handleLocalAIStateChange(service, state) {
-        console.log(`[ModelStateService] LocalAI state changed: ${service}`, state);
-        if (!state.installed || !state.running) {
-            const types = service === 'ollama' ? ['llm'] : service === 'whisper' ? ['stt'] : [];
-            await this._autoSelectAvailableModels(types);
-        }
-        this.emit('state-updated', await this.getLiveState());
     }
 
     async getLiveState() {
@@ -125,72 +52,6 @@ class ModelStateService extends EventEmitter {
         return { apiKeys, selectedModels };
     }
 
-    async _autoSelectAvailableModels(forceReselectionForTypes = [], isInitialBoot = false) {
-        console.log(`[ModelStateService] Running auto-selection. Force re-selection for: [${forceReselectionForTypes.join(', ')}]`);
-        const { apiKeys, selectedModels } = await this.getLiveState();
-        const types = ['llm', 'stt'];
-
-        for (const type of types) {
-            const currentModelId = selectedModels[type];
-            let isCurrentModelValid = false;
-            const forceReselection = forceReselectionForTypes.includes(type);
-
-            if (currentModelId && !forceReselection) {
-                const provider = this.getProviderForModel(currentModelId, type);
-                const apiKey = apiKeys[provider];
-                if (provider && apiKey) {
-                    isCurrentModelValid = true;
-                }
-            }
-
-            if (!isCurrentModelValid) {
-                console.log(`[ModelStateService] No valid ${type.toUpperCase()} model selected or selection forced. Finding an alternative...`);
-                const availableModels = await this.getAvailableModels(type);
-                if (availableModels.length > 0) {
-                    const apiModel = availableModels.find(model => {
-                        const provider = this.getProviderForModel(model.id, type);
-                        return provider && provider !== 'ollama' && provider !== 'whisper';
-                    });
-                    const newModel = apiModel || availableModels[0];
-                    await this.setSelectedModel(type, newModel.id);
-                    console.log(`[ModelStateService] Auto-selected ${type.toUpperCase()} model: ${newModel.id}`);
-                } else {
-                    await providerSettingsRepository.setActiveProvider(null, type);
-                    if (!isInitialBoot) {
-                       this.emit('state-updated', await this.getLiveState());
-                    }
-                }
-            }
-        }
-    }
-    
-    async setApiKey(provider, key) {
-        console.log(`[ModelStateService] setApiKey for ${provider}`);
-        if (!provider) {
-            throw new Error('Provider is required');
-        }
-
-        // 'openai-jarvis'는 자체 인증 키를 사용하므로 유효성 검사를 건너뜁니다.
-        if (provider !== 'openai-jarvis') {
-            const validationResult = await this.validateApiKey(provider, key);
-            if (!validationResult.success) {
-                console.warn(`[ModelStateService] API key validation failed for ${provider}: ${validationResult.error}`);
-                return validationResult;
-            }
-        }
-
-        const finalKey = (provider === 'ollama' || provider === 'whisper') ? 'local' : key;
-        const existingSettings = await providerSettingsRepository.getByProvider(provider) || {};
-        await providerSettingsRepository.upsert(provider, { ...existingSettings, api_key: finalKey });
-        
-        // 키가 추가/변경되었으므로, 해당 provider의 모델을 자동 선택할 수 있는지 확인
-        await this._autoSelectAvailableModels([]);
-        
-        this.emit('state-updated', await this.getLiveState());
-        this.emit('settings-updated');
-        return { success: true };
-    }
-
     async getAllApiKeys() {
         const allSettings = await providerSettingsRepository.getAll();
         const apiKeys = {};
@@ -202,16 +63,24 @@ class ModelStateService extends EventEmitter {
         return apiKeys;
     }
 
-    async removeApiKey(provider) {
-        const setting = await providerSettingsRepository.getByProvider(provider);
-        if (setting && setting.api_key) {
-            await providerSettingsRepository.upsert(provider, { ...setting, api_key: null });
-            await this._autoSelectAvailableModels(['llm', 'stt']);
-            this.emit('state-updated', await this.getLiveState());
-            this.emit('settings-updated');
-            return true;
+    async setApiKey(provider, key) {
+        console.log(`[ModelStateService] setApiKey for ${provider}`);
+        if (!provider) {
+            throw new Error('Provider is required');
         }
-        return false;
+
+        const validationResult = await this.validateApiKey(provider, key);
+        if (!validationResult.success) {
+            console.warn(`[ModelStateService] API key validation failed for ${provider}: ${validationResult.error}`);
+            return validationResult;
+        }
+
+        const existingSettings = await providerSettingsRepository.getByProvider(provider) || {};
+        await providerSettingsRepository.upsert(provider, { ...existingSettings, api_key: key });
+        
+        this.emit('state-updated', await this.getLiveState());
+        this.emit('settings-updated');
+        return { success: true };
     }
 
     async hasValidApiKey() {
@@ -219,28 +88,15 @@ class ModelStateService extends EventEmitter {
         return allSettings.some(s => s.api_key && s.api_key.trim().length > 0);
     }
 
-    getProviderForModel(arg1, arg2) {
-        // Compatibility: support both (type, modelId) old order and (modelId, type) new order
-        let type, modelId;
-        if (arg1 === 'llm' || arg1 === 'stt') {
-            type = arg1;
-            modelId = arg2;
-        } else {
-            modelId = arg1;
-            type = arg2;
+    async removeApiKey(provider) {
+        const setting = await providerSettingsRepository.getByProvider(provider);
+        if (setting && setting.api_key) {
+            await providerSettingsRepository.upsert(provider, { ...setting, api_key: null });
+            this.emit('state-updated', await this.getLiveState());
+            this.emit('settings-updated');
+            return true;
         }
-        if (!modelId || !type) return null;
-        for (const providerId in PROVIDERS) {
-            const models = type === 'llm' ? PROVIDERS[providerId].llmModels : PROVIDERS[providerId].sttModels;
-            if (models && models.some(m => m.id === modelId)) {
-                return providerId;
-            }
-        }
-        if (type === 'llm') {
-            const installedModels = ollamaModelRepository.getInstalledModels();
-            if (installedModels.some(m => m.name === modelId)) return 'ollama';
-        }
-        return null;
+        return false;
     }
 
     async getSelectedModels() {
@@ -252,7 +108,7 @@ class ModelStateService extends EventEmitter {
     }
     
     async setSelectedModel(type, modelId) {
-        const provider = this.getProviderForModel(modelId, type);
+        const provider = 'gemini'; // Only Gemini is supported
         if (!provider) {
             console.warn(`[ModelStateService] No provider found for model ${modelId}`);
             return false;
@@ -272,32 +128,9 @@ class ModelStateService extends EventEmitter {
         
         console.log(`[ModelStateService] Selected ${type} model: ${modelId} (provider: ${provider})`);
         
-        if (type === 'llm' && provider === 'ollama') {
-            require('./localAIManager').warmUpModel(modelId).catch(err => console.warn(err));
-        }
-        
         this.emit('state-updated', await this.getLiveState());
         this.emit('settings-updated');
         return true;
-    }
-
-    async getAvailableModels(type) {
-        const allSettings = await providerSettingsRepository.getAll();
-        const available = [];
-        const modelListKey = type === 'llm' ? 'llmModels' : 'sttModels';
-
-        for (const setting of allSettings) {
-            if (!setting.api_key) continue;
-
-            const providerId = setting.provider;
-            if (providerId === 'ollama' && type === 'llm') {
-                const installed = ollamaModelRepository.getInstalledModels();
-                available.push(...installed.map(m => ({ id: m.name, name: m.name })));
-            } else if (PROVIDERS[providerId]?.[modelListKey]) {
-                available.push(...PROVIDERS[providerId][modelListKey]);
-            }
-        }
-        return [...new Map(available.map(item => [item.id, item])).values()];
     }
 
     async getCurrentModelInfo(type) {
@@ -314,10 +147,26 @@ class ModelStateService extends EventEmitter {
         };
     }
 
-    // --- 핸들러 및 유틸리티 메서드 ---
+    async getAvailableModels(type) {
+        const allSettings = await providerSettingsRepository.getAll();
+        const available = [];
+        const modelListKey = type === 'llm' ? 'llmModels' : 'sttModels';
+
+        for (const setting of allSettings) {
+            if (!setting.api_key) continue;
+
+            const providerId = setting.provider;
+            if (PROVIDERS[providerId]?.[modelListKey]) {
+                available.push(...PROVIDERS[providerId][modelListKey]);
+            }
+        }
+        return [...new Map(available.map(item => [item.id, item])).values()];
+    }
+
+    // --- 핸들러 및 유틸리티 메서도 ---
 
     async validateApiKey(provider, key) {
-        if (!key || (key.trim() === '' && provider !== 'ollama' && provider !== 'whisper')) {
+        if (!key || key.trim() === '') {
             return { success: false, error: 'API key cannot be empty.' };
         }
         const ProviderClass = getProviderClass(provider);
@@ -340,6 +189,7 @@ class ModelStateService extends EventEmitter {
         return config;
     }
     
+    /*-------------- Compatibility Helpers --------------*/
     async handleRemoveApiKey(provider) {
         const success = await this.removeApiKey(provider);
         if (success) {
@@ -351,7 +201,6 @@ class ModelStateService extends EventEmitter {
         return success;
     }
 
-    /*-------------- Compatibility Helpers --------------*/
     async handleValidateKey(provider, key) {
         return await this.setApiKey(provider, key);
     }
@@ -367,14 +216,12 @@ class ModelStateService extends EventEmitter {
         // LLM
         const hasLlmKey = Object.entries(apiKeyMap).some(([provider, key]) => {
             if (!key) return false;
-            if (provider === 'whisper') return false; // whisper는 LLM 없음
             return PROVIDERS[provider]?.llmModels?.length > 0;
         });
         // STT
         const hasSttKey = Object.entries(apiKeyMap).some(([provider, key]) => {
             if (!key) return false;
-            if (provider === 'ollama') return false; // ollama는 STT 없음
-            return PROVIDERS[provider]?.sttModels?.length > 0 || provider === 'whisper';
+            return PROVIDERS[provider]?.sttModels?.length > 0;
         });
         return hasLlmKey && hasSttKey;
     }

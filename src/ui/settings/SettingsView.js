@@ -477,12 +477,6 @@ export class SettingsView extends LitElement {
         showPresets: { type: Boolean, state: true },
         autoUpdateEnabled: { type: Boolean, state: true },
         autoUpdateLoading: { type: Boolean, state: true },
-        // Ollama related properties
-        ollamaStatus: { type: Object, state: true },
-        ollamaModels: { type: Array, state: true },
-        installingModels: { type: Object, state: true },
-        // Whisper related properties
-        whisperModels: { type: Array, state: true },
     };
     //////// after_modelStateService ////////
 
@@ -491,7 +485,7 @@ export class SettingsView extends LitElement {
         //////// after_modelStateService ////////
         this.shortcuts = {};
         this.firebaseUser = null;
-        this.apiKeys = { openai: '', gemini: '', anthropic: '', whisper: '' };
+        this.apiKeys = { gemini: '' };
         this.providerConfig = {};
         this.isLoading = true;
         this.isContentProtectionOn = true;
@@ -505,13 +499,6 @@ export class SettingsView extends LitElement {
         this.presets = [];
         this.selectedPreset = null;
         this.showPresets = false;
-        // Ollama related
-        this.ollamaStatus = { installed: false, running: false };
-        this.ollamaModels = [];
-        this.installingModels = {}; // { modelName: progress }
-        // Whisper related
-        this.whisperModels = [];
-        this.whisperProgressTracker = null; // Will be initialized when needed
         this.handleUseJarvisKey = this.handleUseJarvisKey.bind(this)
         this.autoUpdateEnabled = true;
         this.autoUpdateLoading = true;
@@ -553,39 +540,6 @@ export class SettingsView extends LitElement {
         this.requestUpdate();
     }
 
-    async loadLocalAIStatus() {
-        try {
-            // Load Ollama status
-            const ollamaStatus = await window.api.settingsView.getOllamaStatus();
-            if (ollamaStatus?.success) {
-                this.ollamaStatus = { installed: ollamaStatus.installed, running: ollamaStatus.running };
-                this.ollamaModels = ollamaStatus.models || [];
-            }
-            
-            // Load Whisper models status only if Whisper is enabled
-            if (this.apiKeys?.whisper === 'local') {
-                const whisperModelsResult = await window.api.settingsView.getWhisperInstalledModels();
-                if (whisperModelsResult?.success) {
-                    const installedWhisperModels = whisperModelsResult.models;
-                    if (this.providerConfig?.whisper) {
-                        this.providerConfig.whisper.sttModels.forEach(m => {
-                            const installedInfo = installedWhisperModels.find(i => i.id === m.id);
-                            if (installedInfo) {
-                                m.installed = installedInfo.installed;
-                            }
-                        });
-                    }
-                }
-            }
-            
-            // Trigger UI update
-            this.requestUpdate();
-        } catch (error) {
-            console.error('Error loading LocalAI status:', error);
-        }
-    }
-
-    //////// after_modelStateService ////////
     async loadInitialData() {
         if (!window.api) return;
         this.isLoading = true;
@@ -619,8 +573,6 @@ export class SettingsView extends LitElement {
                 if (firstUserPreset) this.selectedPreset = firstUserPreset;
             }
             
-            // Load LocalAI status asynchronously to improve initial load time
-            this.loadLocalAIStatus();
         } catch (error) {
             console.error('Error loading initial settings data:', error);
         } finally {
@@ -629,63 +581,6 @@ export class SettingsView extends LitElement {
     }
 
 
-    async handleSaveKey(provider) {
-        const input = this.shadowRoot.querySelector(`#key-input-${provider}`);
-        if (!input) return;
-        const key = input.value;
-        
-        // For Ollama, we need to ensure it's ready first
-        if (provider === 'ollama') {
-        this.saving = true;
-            
-            // First ensure Ollama is installed and running
-            const ensureResult = await window.api.settingsView.ensureOllamaReady();
-            if (!ensureResult.success) {
-                alert(`Failed to setup Ollama: ${ensureResult.error}`);
-                this.saving = false;
-                return;
-            }
-            
-            // Now validate (which will check if service is running)
-            const result = await window.api.settingsView.validateKey({ provider, key: 'local' });
-            
-            if (result.success) {
-                await this.refreshModelData();
-                await this.refreshOllamaStatus();
-            } else {
-                alert(`Failed to connect to Ollama: ${result.error}`);
-            }
-            this.saving = false;
-            return;
-        }
-        
-        // For Whisper, just enable it
-        if (provider === 'whisper') {
-            this.saving = true;
-            const result = await window.api.settingsView.validateKey({ provider, key: 'local' });
-            
-            if (result.success) {
-                await this.refreshModelData();
-            } else {
-                alert(`Failed to enable Whisper: ${result.error}`);
-            }
-            this.saving = false;
-            return;
-        }
-        
-        // For other providers, use the normal flow
-        this.saving = true;
-        const result = await window.api.settingsView.validateKey({ provider, key });
-        
-        if (result.success) {
-            await this.refreshModelData();
-        } else {
-            alert(`Failed to save ${provider} key: ${result.error}`);
-            input.value = this.apiKeys[provider] || '';
-        }
-        this.saving = false;
-    }
-    
     async handleClearKey(provider) {
         console.log(`[SettingsView] handleClearKey: ${provider}`);
         this.saving = true;
@@ -710,172 +605,6 @@ export class SettingsView extends LitElement {
         this.requestUpdate();
     }
     
-    async toggleModelList(type) {
-        const visibilityProp = type === 'llm' ? 'isLlmListVisible' : 'isSttListVisible';
-
-        if (!this[visibilityProp]) {
-            this.saving = true;
-            this.requestUpdate();
-            
-            await this.refreshModelData();
-
-            this.saving = false;
-        }
-
-        // 데이터 새로고침 후, 목록의 표시 상태를 토글합니다.
-        this[visibilityProp] = !this[visibilityProp];
-        this.requestUpdate();
-    }
-    
-    async selectModel(type, modelId) {
-        // Check if this is an Ollama model that needs to be installed
-        const provider = this.getProviderForModel(type, modelId);
-        if (provider === 'ollama') {
-            const ollamaModel = this.ollamaModels.find(m => m.name === modelId);
-            if (ollamaModel && !ollamaModel.installed && !ollamaModel.installing) {
-                // Need to install the model first
-                await this.installOllamaModel(modelId);
-                return;
-            }
-        }
-        
-        // Check if this is a Whisper model that needs to be downloaded
-        if (provider === 'whisper' && type === 'stt') {
-            const isInstalling = this.installingModels[modelId] !== undefined;
-            const whisperModelInfo = this.providerConfig.whisper.sttModels.find(m => m.id === modelId);
-            
-            if (whisperModelInfo && !whisperModelInfo.installed && !isInstalling) {
-                await this.downloadWhisperModel(modelId);
-                return;
-            }
-        }
-        
-        this.saving = true;
-        await window.api.settingsView.setSelectedModel({ type, modelId });
-        if (type === 'llm') this.selectedLlm = modelId;
-        if (type === 'stt') this.selectedStt = modelId;
-        this.isLlmListVisible = false;
-        this.isSttListVisible = false;
-        this.saving = false;
-        this.requestUpdate();
-    }
-    
-    async refreshOllamaStatus() {
-        const ollamaStatus = await window.api.settingsView.getOllamaStatus();
-        if (ollamaStatus?.success) {
-            this.ollamaStatus = { installed: ollamaStatus.installed, running: ollamaStatus.running };
-            this.ollamaModels = ollamaStatus.models || [];
-        }
-    }
-    
-    async installOllamaModel(modelName) {
-        try {
-            // Ollama 모델 다운로드 시작
-            this.installingModels = { ...this.installingModels, [modelName]: 0 };
-            this.requestUpdate();
-
-            // 진행률 이벤트 리스너 설정 - 통합 LocalAI 이벤트 사용
-            const progressHandler = (event, data) => {
-                if (data.service === 'ollama' && data.model === modelName) {
-                    this.installingModels = { ...this.installingModels, [modelName]: data.progress || 0 };
-                    this.requestUpdate();
-                }
-            };
-
-            // 통합 LocalAI 이벤트 리스너 등록
-            window.api.settingsView.onLocalAIInstallProgress(progressHandler);
-
-            try {
-                const result = await window.api.settingsView.pullOllamaModel(modelName);
-                
-                if (result.success) {
-                    console.log(`[SettingsView] Model ${modelName} installed successfully`);
-                    delete this.installingModels[modelName];
-                    this.requestUpdate();
-                    
-                    // 상태 새로고침
-                    await this.refreshOllamaStatus();
-                    await this.refreshModelData();
-                } else {
-                    throw new Error(result.error || 'Installation failed');
-                }
-            } finally {
-                // 통합 LocalAI 이벤트 리스너 제거
-                window.api.settingsView.removeOnLocalAIInstallProgress(progressHandler);
-            }
-        } catch (error) {
-            console.error(`[SettingsView] Error installing model ${modelName}:`, error);
-            delete this.installingModels[modelName];
-            this.requestUpdate();
-        }
-    }
-    
-    async downloadWhisperModel(modelId) {
-        // Mark as installing
-        this.installingModels = { ...this.installingModels, [modelId]: 0 };
-        this.requestUpdate();
-        
-        try {
-            // Set up progress listener - 통합 LocalAI 이벤트 사용
-            const progressHandler = (event, data) => {
-                if (data.service === 'whisper' && data.model === modelId) {
-                    this.installingModels = { ...this.installingModels, [modelId]: data.progress || 0 };
-                    this.requestUpdate();
-                }
-            };
-            
-            window.api.settingsView.onLocalAIInstallProgress(progressHandler);
-            
-            // Start download
-            const result = await window.api.settingsView.downloadWhisperModel(modelId);
-            
-            if (result.success) {
-                // Update the model's installed status
-                if (this.providerConfig?.whisper?.sttModels) {
-                    const modelInfo = this.providerConfig.whisper.sttModels.find(m => m.id === modelId);
-                    if (modelInfo) {
-                        modelInfo.installed = true;
-                    }
-                }
-                
-                // Remove from installing models
-                delete this.installingModels[modelId];
-                this.requestUpdate();
-                
-                // Reload LocalAI status to get fresh data
-                await this.loadLocalAIStatus();
-                
-                // Auto-select the model after download
-                await this.selectModel('stt', modelId);
-            } else {
-                // Remove from installing models on failure too
-                delete this.installingModels[modelId];
-                this.requestUpdate();
-                alert(`Failed to download Whisper model: ${result.error}`);
-            }
-            
-            // Cleanup
-            window.api.settingsView.removeOnLocalAIInstallProgress(progressHandler);
-        } catch (error) {
-            console.error(`[SettingsView] Error downloading Whisper model ${modelId}:`, error);
-            // Remove from installing models on error
-            delete this.installingModels[modelId];
-            this.requestUpdate();
-            alert(`Error downloading ${modelId}: ${error.message}`);
-        }
-    }
-    
-    getProviderForModel(type, modelId) {
-        for (const [providerId, config] of Object.entries(this.providerConfig)) {
-            const models = type === 'llm' ? config.llmModels : config.sttModels;
-            if (models?.some(m => m.id === modelId)) {
-                return providerId;
-            }
-        }
-        return null;
-    }
-
-
     handleUseJarvisKey(e) {
         e.preventDefault()
         if (this.wasJustDragged) return
@@ -898,21 +627,6 @@ export class SettingsView extends LitElement {
         this.loadAutoUpdateSetting();
         // Force one height calculation immediately (innerHeight may be 0 at first)
         setTimeout(() => this.updateScrollHeight(), 0);
-    }
-
-    disconnectedCallback() {
-        super.disconnectedCallback();
-        this.cleanupEventListeners();
-        this.cleanupIpcListeners();
-        this.cleanupWindowResize();
-        
-        // Cancel any ongoing Ollama installations when component is destroyed
-        const installingModels = Object.keys(this.installingModels);
-        if (installingModels.length > 0) {
-            installingModels.forEach(modelName => {
-                window.api.settingsView.cancelOllamaInstallation(modelName);
-            });
-        }
     }
 
     setupEventListeners() {
@@ -1126,32 +840,9 @@ export class SettingsView extends LitElement {
         window.api.settingsView.firebaseLogout();
     }
 
-    async handleOllamaShutdown() {
-        console.log('[SettingsView] Shutting down Ollama service...');
-        
-        if (!window.api) return;
-        
-        try {
-            // Show loading state
-            this.ollamaStatus = { ...this.ollamaStatus, running: false };
-            this.requestUpdate();
-            
-            const result = await window.api.settingsView.shutdownOllama(false); // Graceful shutdown
-            
-            if (result.success) {
-                console.log('[SettingsView] Ollama shut down successfully');
-                // Refresh status to reflect the change
-                await this.refreshOllamaStatus();
-            } else {
-                console.error('[SettingsView] Failed to shutdown Ollama:', result.error);
-                // Restore previous state on error
-                await this.refreshOllamaStatus();
-            }
-        } catch (error) {
-            console.error('[SettingsView] Error during Ollama shutdown:', error);
-            // Restore previous state on error
-            await this.refreshOllamaStatus();
-        }
+    handleQuit() {
+        console.log('Quit clicked');
+        window.api.settingsView.quitApplication();
     }
 
     //////// after_modelStateService ////////
@@ -1344,8 +1035,41 @@ export class SettingsView extends LitElement {
                     </div>
                 </div>
 
-                ${apiKeyManagementHTML}
-                ${modelSelectionHTML}
+                <div class="api-key-section">
+                    ${Object.entries(this.apiKeys).map(([id, key]) => html`
+                        <div class="provider-key-group">
+                            <label for="key-input-${id}">${id.charAt(0).toUpperCase() + id.slice(1)} API Key</label>
+                            <input type="password" id="key-input-${id}"
+                                placeholder="Enter ${id.charAt(0).toUpperCase() + id.slice(1)} API Key" 
+                                .value=${key || ''}
+                                @input=${(e) => this.apiKeys = { ...this.apiKeys, [id]: e.target.value }}
+                            >
+                            <div class="key-buttons">
+                               <button class="settings-button" @click=${() => this.handleSaveKey(id)} >Save</button>
+                               <button class="settings-button danger" @click=${() => this.handleClearKey(id)} >Clear</button>
+                            </div>
+                        </div>
+                    `)}
+                </div>
+
+                <div class="model-selection-section">
+                    <div class="model-select-group">
+                        <label>LLM Model: <strong>${this.selectedLlm || 'Not Set'}</strong></label>
+                        <select class="model-dropdown" @change=${(e) => this.selectedLlm = e.target.value}>
+                            ${this.availableLlmModels.map(model => html`
+                                <option value=${model.id} ?selected=${this.selectedLlm === model.id}>${model.name}</option>
+                            `)}
+                        </select>
+                    </div>
+                    <div class="model-select-group">
+                        <label>STT Model: <strong>${this.selectedStt || 'Not Set'}</strong></label>
+                        <select class="model-dropdown" @change=${(e) => this.selectedStt = e.target.value}>
+                            ${this.availableSttModels.map(model => html`
+                                <option value=${model.id} ?selected=${this.selectedStt === model.id}>${model.name}</option>
+                            `)}
+                        </select>
+                    </div>
+                </div>
 
                 <div class="buttons-section" style="border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 6px; margin-top: 6px;">
                     <button class="settings-button full-width" @click=${this.openShortcutEditor}>
