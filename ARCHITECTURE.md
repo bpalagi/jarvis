@@ -1,19 +1,12 @@
 # Jarvis: Design Patterns and Architectural Overview
 
-Welcome to the Jarvis project! This document is the definitive guide to the architectural patterns, conventions, and design philosophy that guide our development. Adhering to these principles is essential for building new features, maintaining the quality of our codebase, and ensuring a stable, consistent developer experience.
-
-The architecture is designed to be modular, robust, and clear, with a strict separation of concerns.
-
 ---
 
 ## Core Architectural Principles
 
-These are the fundamental rules that govern the entire application.
-
 1.  **Centralized Data Logic**: All data persistence logic (reading from or writing to a database) is centralized within the **Electron Main Process**. The UI layers (both Electron's renderer and the web dashboard) are forbidden from accessing data sources directly.
 2.  **Feature-Based Modularity**: Code is organized by feature (`src/features`) to promote encapsulation and separation of concerns. A new feature should be self-contained within its own directory.
-3.  **AI Provider Abstraction**: AI model interactions are abstracted using a **Factory Pattern**. The application is currently configured to use Gemini as the sole AI provider.
-4.  **Single Source of Truth for Schema**: The schema for the local SQLite database is defined in a single location: `src/common/config/schema.js`. Any change to the database structure **must** be updated here.
+3.  **Single Source of Truth for Schema**: The schema for the local SQLite database is defined in a single location: `src/common/config/schema.js`. Any change to the database structure **must** be updated here.
 
 ---
 
@@ -36,7 +29,6 @@ The Electron app's logic is primarily built on a **Service-Repository** pattern,
 ### 2. Data Persistence: The Repository Pattern
 
 
-
 -   **SQLite**: The default data store for all users, especially those not logged in. This ensures full offline functionality. The low-level client is `src/common/services/sqliteClient.js`.
 
 The application uses the local SQLite database for all data persistence.
@@ -45,22 +37,6 @@ The application uses the local SQLite database for all data persistence.
 1.  **Service Call**: A service makes a call to a high-level repository function, like `sessionRepository.create('ask')`. The service is unaware of the underlying database.
 2.  **Execution**: The SQLite repository executes the data operation.
 
-
-**Visualizing the Data Flow**
-
-```mermaid
-graph TD
-    subgraph "Electron Main Process"
-        A -- User Action --> B[Service Layer];
-        B -- Data Request --> E[SQLite Repository];
-        E -- Access Local DB --> G[(SQLite)];
-        G -- Return Data --> B;
-        B -- Update UI --> A;
-    end
-
-    style A fill:#D6EAF8,stroke:#3498DB
-    style G fill:#E8DAEF,stroke:#8E44AD
-```
 
 ---
 
@@ -91,22 +67,3 @@ When the web frontend needs data that resides in the local SQLite database, it f
 
 This round-trip ensures our core principle of centralizing data logic in the main process is never violated.
 
-**Visualizing the IPC Data Flow**
-
-```mermaid
-sequenceDiagram
-    participant FE as Next.js Frontend
-    participant BE as Node.js Backend
-    participant Main as Electron Main Process
-
-    FE->>+BE: 1. HTTP GET /api/local-data
-    Note over BE: Receives local data request
-    
-    BE->>+Main: 2. ipcRequest('get-data', responseChannel)
-    Note over Main: Receives request, fetches data from SQLite<br/>via Service/Repository
-    
-    Main-->>-BE: 3. ipcResponse on responseChannel (data)
-    Note over BE: Receives data, prepares HTTP response
-    
-    BE-->>-FE: 4. HTTP 200 OK (JSON data)
-```
