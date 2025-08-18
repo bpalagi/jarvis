@@ -7,9 +7,7 @@
 
 require('dotenv').config();
 
-if (require('electron-squirrel-startup')) {
-    process.exit(0);
-}
+
 
 const { app, BrowserWindow, shell, ipcMain, dialog, desktopCapturer, session } = require('electron');
 const { createWindows } = require('./window/windowManager.js');
@@ -20,7 +18,7 @@ const authService = require('./features/common/services/authService');
 const path = require('node:path');
 const express = require('express');
 const fetch = require('node-fetch');
-const { autoUpdater } = require('electron-updater');
+
 const { EventEmitter } = require('events');
 const askService = require('./features/ask/askService');
 const settingsService = require('./features/settings/settingsService');
@@ -213,8 +211,7 @@ app.whenReady().then(async () => {
         );
     }
 
-    // initAutoUpdater should be called after auth is initialized
-    initAutoUpdater();
+    
 
     // Process any pending deep link after everything is initialized
     if (pendingDeepLinkUrl) {
@@ -591,36 +588,3 @@ async function startWebStack() {
   return frontendPort;
 }
 
-// Auto-update initialization
-async function initAutoUpdater() {
-    if (process.env.NODE_ENV === 'development') {
-        console.log('Development environment, skipping auto-updater.');
-        return;
-    }
-
-    try {
-        await autoUpdater.checkForUpdates();
-        autoUpdater.on('update-available', () => {
-            console.log('Update available!');
-            autoUpdater.downloadUpdate();
-        });
-        autoUpdater.on('update-downloaded', (event, releaseNotes, releaseName, date, url) => {
-            console.log('Update downloaded:', releaseNotes, releaseName, date, url);
-            dialog.showMessageBox({
-                type: 'info',
-                title: 'Application Update',
-                message: `A new version of Jarvis (${releaseName}) has been downloaded. It will be installed the next time you launch the application.`,
-                buttons: ['Restart', 'Later']
-            }).then(response => {
-                if (response.response === 0) {
-                    autoUpdater.quitAndInstall();
-                }
-            });
-        });
-        autoUpdater.on('error', (err) => {
-            console.error('Error in auto-updater:', err);
-        });
-    } catch (err) {
-        console.error('Error initializing auto-updater:', err);
-    }
-}
