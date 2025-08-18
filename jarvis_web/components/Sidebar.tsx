@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useState, createElement, useEffect, useMemo, useCallback, memo } from 'react';
 import { Search, Activity, HelpCircle, Download, ChevronDown, User, Shield, Database, CreditCard, LogOut, LucideIcon } from 'lucide-react';
-import { logout, UserProfile, checkApiKeyStatus } from '@/utils/api';
+import { checkApiKeyStatus } from '@/utils/api';
 import { useAuth } from '@/utils/auth';
 
 const ANIMATION_DURATION = {
@@ -148,8 +148,8 @@ IconComponent.displayName = 'IconComponent';
 const SidebarComponent = ({ isCollapsed, onToggle, onSearchClick }: SidebarProps) => {
     const pathname = usePathname();
     const router = useRouter();
+    const { user: userInfo, isLoading } = useAuth();
     const [isSettingsExpanded, setIsSettingsExpanded] = useState(pathname.startsWith('/settings'));
-    const { user: userInfo, isLoading: authLoading } = useAuth();
     const [hasApiKey, setHasApiKey] = useState<boolean | null>(null);
 
     const { isAnimating, getTextAnimationStyle, getSubmenuAnimationStyle, sidebarContainerStyle, getTextContainerStyle, getUniformTextStyle } =
@@ -223,10 +223,10 @@ const SidebarComponent = ({ isCollapsed, onToggle, onSearchClick }: SidebarProps
                 ariaLabel: 'Help Center (new window)',
             },
             {
-                href: 'https://www.dropbox.com/scl/fi/esk4h8z45sryvbremy57v/Pickle_latest.dmg?rlkey=92y535bz6p6gov6vd17x6q53b&st=9kl0annj&dl=1',
+                href: 'https://www.jarvis.com/download',
                 icon: '/download.svg',
-                text: 'Download Pickle Camera',
-                ariaLabel: 'Download Pickle Camera (new window)',
+                text: 'Download Jarvis',
+                ariaLabel: 'Download Jarvis (new window)',
             },
             {
                 href: 'hhttps://www.dropbox.com/scl/fi/znid09apxiwtwvxer6oc9/Jarvis_latest.dmg?rlkey=gwvvyb3bizkl25frhs4k1zwds&st=37q31b4w&dl=1',
@@ -248,13 +248,12 @@ const SidebarComponent = ({ isCollapsed, onToggle, onSearchClick }: SidebarProps
         }
     }, [pathname]);
 
-    const handleLogout = useCallback(async () => {
-        try {
-            await logout();
-        } catch (error) {
-            console.error('An error occurred during logout:', error);
-        }
-    }, []);
+    const handleLogout = useCallback(() => {
+        localStorage.removeItem('jarvis_user');
+        localStorage.removeItem('openai_api_key');
+        localStorage.removeItem('user_info');
+        router.push('/login');
+    }, [router]);
 
     const handleKeyDown = useCallback((event: React.KeyboardEvent, action?: () => void) => {
         if (event.key === 'Enter' || event.key === ' ') {
@@ -375,40 +374,21 @@ const SidebarComponent = ({ isCollapsed, onToggle, onSearchClick }: SidebarProps
                                     </li>
                                 ))}
                                 <li role="none">
-                                    {isFirebaseUser ? (
-                                        <button
-                                            onClick={handleLogout}
-                                            onKeyDown={e => handleKeyDown(e, handleLogout)}
-                                            className={`
-                                    group flex items-center rounded-lg px-[12px] py-[8px] text-[13px] gap-x-[9px]
-                                    text-red-600 hover:text-red-700 hover:bg-[#f7f7f7] w-full 
-                                    transition-colors duration-${ANIMATION_DURATION.COLOR_TRANSITION} ease-out
-                                    focus:outline-none
-                                  `}
-                                            style={{ willChange: 'background-color, color' }}
-                                            role="menuitem"
-                                            aria-label="Logout"
-                                        >
-                                            <LogOut className="h-4 w-4 shrink-0" aria-hidden="true" />
-                                            <span className="whitespace-nowrap">Logout</span>
-                                        </button>
-                                    ) : (
-                                        <Link
-                                            href="/login"
-                                            className={`
+                                    <Link
+                                        href="/login"
+                                        className={`
                                     group flex items-center rounded-lg px-[12px] py-[8px] text-[13px] gap-x-[9px] 
                                     text-[#282828] hover:text-[#282828] hover:bg-[#f7f7f7] w-full 
                                     transition-colors duration-${ANIMATION_DURATION.COLOR_TRANSITION} ease-out
                                     focus:outline-none
                                   `}
-                                            style={{ willChange: 'background-color, color' }}
-                                            role="menuitem"
-                                            aria-label="Login"
-                                        >
-                                            <LogOut className="h-3.5 w-3.5 shrink-0 transform -scale-x-100" aria-hidden="true" />
-                                            <span className="whitespace-nowrap">Login</span>
-                                        </Link>
-                                    )}
+                                        style={{ willChange: 'background-color, color' }}
+                                        role="menuitem"
+                                        aria-label="Login"
+                                    >
+                                        <LogOut className="h-3.5 w-3.5 shrink-0 transform -scale-x-100" aria-hidden="true" />
+                                        <span className="whitespace-nowrap">Login</span>
+                                    </Link>
                                 </li>
                             </ul>
                         </div>
@@ -459,16 +439,14 @@ const SidebarComponent = ({ isCollapsed, onToggle, onSearchClick }: SidebarProps
     );
 
     const getUserDisplayName = useCallback(() => {
-        if (authLoading) return 'Loading...';
         return userInfo?.display_name || 'Guest';
-    }, [userInfo, authLoading]);
+    }, [userInfo]);
 
     const getUserInitial = useCallback(() => {
-        if (authLoading) return 'L';
         return userInfo?.display_name ? userInfo.display_name.charAt(0).toUpperCase() : 'G';
-    }, [userInfo, authLoading]);
+    }, [userInfo]);
 
-    const isFirebaseUser = userInfo && userInfo.uid !== 'default_user';
+    
 
     return (
         <aside
@@ -609,11 +587,7 @@ const SidebarComponent = ({ isCollapsed, onToggle, onSearchClick }: SidebarProps
                         aria-label={`User: ${getUserDisplayName()}`}
                         onKeyDown={e =>
                             handleKeyDown(e, () => {
-                                if (isFirebaseUser) {
-                                    router.push('/settings');
-                                } else {
-                                    router.push('/login');
-                                }
+                                router.push('/login');
                             })
                         }
                     >

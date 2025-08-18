@@ -3,13 +3,11 @@ const Store = require('electron-store');
 const { PROVIDERS, getProviderClass } = require('../ai/factory');
 const encryptionService = require('./encryptionService');
 const providerSettingsRepository = require('../repositories/providerSettings');
-const authService = require('./authService');
 const ollamaModelRepository = require('../repositories/ollamaModel');
 
 class ModelStateService extends EventEmitter {
     constructor() {
         super();
-        this.authService = authService;
         // electron-store는 오직 레거시 데이터 마이그레이션 용도로만 사용됩니다.
         this.store = new Store({ name: 'jarvis-model-state' });
     }
@@ -28,8 +26,8 @@ class ModelStateService extends EventEmitter {
             const rows = await providerSettingsRepository.getRawApiKeys();
             if (rows.some(r => r.api_key && encryptionService.looksEncrypted(r.api_key))) {
                 console.log('[ModelStateService] Encrypted keys detected, initializing encryption...');
-                const userIdForMigration = this.authService.getCurrentUserId();
-                await encryptionService.initializeKey(userIdForMigration);
+                // No userId needed for encryption key initialization in local-only mode
+                await encryptionService.initializeKey();
             } else {
                 console.log('[ModelStateService] No encrypted keys detected, skipping encryption initialization.');
             }
@@ -40,7 +38,7 @@ class ModelStateService extends EventEmitter {
 
     async _runMigrations() {
         console.log('[ModelStateService] Checking for data migrations...');
-        const userId = this.authService.getCurrentUserId();
+        const userId = 'default_user'; // Use a default user ID for local mode
         
         try {
             const sqliteClient = require('./sqliteClient');
@@ -166,44 +164,6 @@ class ModelStateService extends EventEmitter {
         }
     }
     
-    async setFirebaseVirtualKey(virtualKey) {
-        console.log(`[ModelStateService] Setting Firebase virtual key.`);
-
-        // 키를 설정하기 전에, 이전에 openai-jarvis 키가 있었는지 확인합니다.
-        const previousSettings = await providerSettingsRepository.getByProvider('openai-jarvis');
-        const wasPreviouslyConfigured = !!previousSettings?.api_key;
-
-        // 항상 새로운 가상 키로 업데이트합니다.
-        await this.setApiKey('openai-jarvis', virtualKey);
-
-        if (virtualKey) {
-            // 이전에 설정된 적이 없는 경우 (최초 로그인)에만 모델을 강제로 변경합니다.
-            if (!wasPreviouslyConfigured) {
-                console.log('[ModelStateService] First-time setup for openai-jarvis, setting default models.');
-                const llmModel = PROVIDERS['openai-jarvis']?.llmModels[0];
-                const sttModel = PROVIDERS['openai-jarvis']?.sttModels[0];
-                if (llmModel) await this.setSelectedModel('llm', llmModel.id);
-                if (sttModel) await this.setSelectedModel('stt', sttModel.id);
-            } else {
-                console.log('[ModelStateService] openai-jarvis key updated, but respecting user\'s existing model selection.');
-            }
-        } else {
-            // 로그아웃 시, 현재 활성화된 모델이 openai-jarvis인 경우에만 다른 모델로 전환합니다.
-            const selected = await this.getSelectedModels();
-            const llmProvider = this.getProviderForModel(selected.llm, 'llm');
-            const sttProvider = this.getProviderForModel(selected.stt, 'stt');
-            
-            const typesToReselect = [];
-            if (llmProvider === 'openai-jarvis') typesToReselect.push('llm');
-            if (sttProvider === 'openai-jarvis') typesToReselect.push('stt');
-
-            if (typesToReselect.length > 0) {
-                console.log('[ModelStateService] Logged out, re-selecting models for:', typesToReselect.join(', '));
-                await this._autoSelectAvailableModels(typesToReselect);
-            }
-        }
-    }
-
     async setApiKey(provider, key) {
         console.log(`[ModelStateService] setApiKey for ${provider}`);
         if (!provider) {
@@ -254,19 +214,7 @@ class ModelStateService extends EventEmitter {
         return false;
     }
 
-    /**
-     * 사용자가 Firebase에 로그인했는지 확인합니다.
-     */
-    isLoggedInWithFirebase() {
-        return this.authService.getCurrentUser().isLoggedIn;
-    }
-
-    /**
-     * 유효한 API 키가 하나라도 설정되어 있는지 확인합니다.
-     */
     async hasValidApiKey() {
-        if (this.isLoggedInWithFirebase()) return true;
-        
         const allSettings = await providerSettingsRepository.getAll();
         return allSettings.some(s => s.api_key && s.api_key.trim().length > 0);
     }
@@ -413,7 +361,6 @@ class ModelStateService extends EventEmitter {
     }
 
     async areProvidersConfigured() {
-        if (this.isLoggedInWithFirebase()) return true;
         const allSettings = await providerSettingsRepository.getAll();
         const apiKeyMap = {};
         allSettings.forEach(s => apiKeyMap[s.provider] = s.api_key);

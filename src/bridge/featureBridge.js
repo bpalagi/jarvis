@@ -50,8 +50,7 @@ module.exports = {
 
     // User/Auth
     ipcMain.handle('get-current-user', () => authService.getCurrentUser());
-    ipcMain.handle('start-firebase-auth', async () => await authService.startFirebaseAuthFlow());
-    ipcMain.handle('firebase-logout', async () => await authService.signOut());
+    
 
     // App
     ipcMain.handle('quit-application', () => app.quit());
