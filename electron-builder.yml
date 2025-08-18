@@ -70,9 +70,6 @@ mac:
     icon: src/ui/assets/logo.icns
     # Minimum macOS version (supports both Intel and Apple Silicon)
     minimumSystemVersion: '11.0'
-    hardenedRuntime: true
-    entitlements: entitlements.plist
-    entitlementsInherit: entitlements.plist
     target:
       - target: dmg
         arch: universal

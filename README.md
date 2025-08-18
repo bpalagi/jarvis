@@ -3,7 +3,7 @@
 ## Quick Start (Local Build)
 
 ```bash
-nvm install 20
+nvm use 22
 npm run setup
 ```
 
