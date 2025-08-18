@@ -457,8 +457,8 @@ class SttService {
         const sttOptions = {
             apiKey: this.modelInfo.apiKey,
             language: effectiveLanguage,
-            usePortkey: this.modelInfo.provider === 'openai-glass',
-            portkeyVirtualKey: this.modelInfo.provider === 'openai-glass' ? this.modelInfo.apiKey : undefined,
+            usePortkey: this.modelInfo.provider === 'openai-jarvis',
+            portkeyVirtualKey: this.modelInfo.provider === 'openai-jarvis' ? this.modelInfo.apiKey : undefined,
         };
 
         // Add sessionType for Whisper to distinguish between My and Their sessions

@@ -17,7 +17,7 @@ function createApp(eventBridge) {
     app.use(express.json());
 
     app.get('/', (req, res) => {
-        res.json({ message: "pickleglass API is running" });
+        res.json({ message: "Jarvis API is running" });
     });
 
     app.use((req, res, next) => {

@@ -512,7 +512,7 @@ export class SettingsView extends LitElement {
         // Whisper related
         this.whisperModels = [];
         this.whisperProgressTracker = null; // Will be initialized when needed
-        this.handleUsePicklesKey = this.handleUsePicklesKey.bind(this)
+        this.handleUseJarvisKey = this.handleUseJarvisKey.bind(this)
         this.autoUpdateEnabled = true;
         this.autoUpdateLoading = true;
         this.loadInitialData();
@@ -876,7 +876,7 @@ export class SettingsView extends LitElement {
     }
 
 
-    handleUsePicklesKey(e) {
+    handleUseJarvisKey(e) {
         e.preventDefault()
         if (this.wasJustDragged) return
     
@@ -1172,7 +1172,7 @@ export class SettingsView extends LitElement {
         const apiKeyManagementHTML = html`
             <div class="api-key-section">
                 ${Object.entries(this.providerConfig)
-                    .filter(([id, config]) => !id.includes('-glass'))
+                    .filter(([id, config]) => !id.includes('-jarvis'))
                     .map(([id, config]) => {
                         if (id === 'ollama') {
                             // Special UI for Ollama
@@ -1231,7 +1231,7 @@ export class SettingsView extends LitElement {
                         <div class="provider-key-group">
                             <label for="key-input-${id}">${config.name} API Key</label>
                             <input type="password" id="key-input-${id}"
-                                placeholder=${loggedIn ? "Using Pickle's Key" : `Enter ${config.name} API Key`} 
+                                placeholder=${loggedIn ? "Using Jarvis's Key" : `Enter ${config.name} API Key`} 
                                 .value=${this.apiKeys[id] || ''}
                             >
                             <div class="key-buttons">
@@ -1329,7 +1329,7 @@ export class SettingsView extends LitElement {
             <div class="settings-container">
                 <div class="header-section">
                     <div>
-                        <h1 class="app-title">Pickle Glass</h1>
+                        <h1 class="app-title">Jarvis</h1>
                         <div class="account-info">
                             ${this.firebaseUser
                                 ? html`Account: ${this.firebaseUser.email || 'Logged In'}`

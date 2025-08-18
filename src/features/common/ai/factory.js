@@ -1,22 +1,3 @@
-// factory.js
-
-/**
- * @typedef {object} ModelOption
- * @property {string} id 
- * @property {string} name
- */
-
-/**
- * @typedef {object} Provider
- * @property {string} name
- * @property {() => any} handler
- * @property {ModelOption[]} llmModels
- * @property {ModelOption[]} sttModels
- */
-
-/**
- * @type {Object.<string, Provider>}
- */
 const PROVIDERS = {
   'openai': {
       name: 'OpenAI',
@@ -29,14 +10,14 @@ const PROVIDERS = {
       ],
   },
 
-  'openai-glass': {
-      name: 'OpenAI (Glass)',
+  'openai-jarvis': {
+      name: 'OpenAI (Jarvis)',
       handler: () => require("./providers/openai"),
       llmModels: [
-          { id: 'gpt-4.1-glass', name: 'GPT-4.1 (glass)' },
+          { id: 'gpt-4.1-jarvis', name: 'GPT-4.1 (jarvis)' },
       ],
       sttModels: [
-          { id: 'gpt-4o-mini-transcribe-glass', name: 'GPT-4o Mini Transcribe (glass)' }
+          { id: 'gpt-4o-mini-transcribe-jarvis', name: 'GPT-4o Mini Transcribe (jarvis)' }
       ],
   },
   'gemini': {
@@ -96,11 +77,11 @@ const PROVIDERS = {
 };
 
 function sanitizeModelId(model) {
-  return (typeof model === 'string') ? model.replace(/-glass$/, '') : model;
+  return (typeof model === 'string') ? model.replace(/-jarvis$/, '') : model;
 }
 
 function createSTT(provider, opts) {
-  if (provider === 'openai-glass') provider = 'openai';
+  if (provider === 'openai-jarvis') provider = 'openai';
   
   const handler = PROVIDERS[provider]?.handler();
   if (!handler?.createSTT) {
@@ -113,7 +94,7 @@ function createSTT(provider, opts) {
 }
 
 function createLLM(provider, opts) {
-  if (provider === 'openai-glass') provider = 'openai';
+  if (provider === 'openai-jarvis') provider = 'openai';
 
   const handler = PROVIDERS[provider]?.handler();
   if (!handler?.createLLM) {
@@ -126,7 +107,7 @@ function createLLM(provider, opts) {
 }
 
 function createStreamingLLM(provider, opts) {
-  if (provider === 'openai-glass') provider = 'openai';
+  if (provider === 'openai-jarvis') provider = 'openai';
   
   const handler = PROVIDERS[provider]?.handler();
   if (!handler?.createStreamingLLM) {
@@ -142,9 +123,9 @@ function getProviderClass(providerId) {
     const providerConfig = PROVIDERS[providerId];
     if (!providerConfig) return null;
     
-    // Handle special cases for glass providers
+    // Handle special cases for jarvis providers
     let actualProviderId = providerId;
-    if (providerId === 'openai-glass') {
+    if (providerId === 'openai-jarvis') {
         actualProviderId = 'openai';
     }
     

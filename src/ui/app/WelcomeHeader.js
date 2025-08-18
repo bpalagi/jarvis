@@ -188,7 +188,7 @@ export class WelcomeHeader extends LitElement {
             <div class="container">
                 <button class="close-button" @click=${this.handleClose}>×</button>
                 <div class="header-section">
-                    <div class="title">Welcome to Glass</div>
+                    <div class="title">Welcome to Jarvis</div>
                     <div class="subtitle">Choose how to connect your AI model</div>
                 </div>
                 <div class="option-card">
@@ -196,7 +196,7 @@ export class WelcomeHeader extends LitElement {
                     <div class="option-content">
                         <div class="option-title">Quick start with default API key</div>
                         <div class="option-description">
-                            100% free with Pickle's OpenAI key<br/>No personal data collected<br/>Sign up with Google in seconds
+                            100% free with Jarvis's OpenAI key<br/>No personal data collected<br/>Sign up with Google in seconds
                         </div>
                     </div>
                     <button class="action-button" @click=${this.loginCallback}>
@@ -218,7 +218,7 @@ export class WelcomeHeader extends LitElement {
                     </button>
                 </div>
                 <div class="footer">
-                    Glass does not collect your personal data —
+                    Jarvis does not collect your personal data —
                     <span class="footer-link" @click=${this.openPrivacyPolicy}>See details</span>
                 </div>
             </div>

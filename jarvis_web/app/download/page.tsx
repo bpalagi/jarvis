@@ -20,7 +20,7 @@ export default function DownloadPage() {
   return (
     <div className="p-8">
       <div className="max-w-4xl mx-auto text-center">
-        <h1 className="text-3xl font-bold text-gray-900 mb-4">Download pickleglass</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-4">Download Jarvis</h1>
         <p className="text-lg text-gray-600 mb-12">
           Use Jarvis on various platforms
         </p>

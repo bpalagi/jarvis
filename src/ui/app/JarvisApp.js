@@ -6,7 +6,7 @@ import { ShortcutSettingsView } from '../settings/ShortCutSettingsView.js';
 
 import '../listen/audioCore/renderer.js';
 
-export class PickleGlassApp extends LitElement {
+export class JarvisApp extends LitElement {
     static styles = css`
         :host {
             display: block;
@@ -158,4 +158,4 @@ export class PickleGlassApp extends LitElement {
     }
 }
 
-customElements.define('pickle-glass-app', PickleGlassApp);
+customElements.define('jarvis-app', JarvisApp);

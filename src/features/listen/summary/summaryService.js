@@ -90,7 +90,7 @@ Please build upon this context while analyzing the new conversation segments.
 `;
         }
 
-        const basePrompt = getSystemPrompt('pickle_glass_analysis', '', false);
+        const basePrompt = getSystemPrompt('jarvis_analysis', '', false);
         const systemPrompt = basePrompt.replace('{{CONVERSATION_HISTORY}}', recentConversation);
 
         try {
@@ -142,8 +142,8 @@ Keep all points concise and build upon previous analysis if provided.`,
                 model: modelInfo.model,
                 temperature: 0.7,
                 maxTokens: 1024,
-                usePortkey: modelInfo.provider === 'openai-glass',
-                portkeyVirtualKey: modelInfo.provider === 'openai-glass' ? modelInfo.apiKey : undefined,
+                usePortkey: modelInfo.provider === 'openai-jarvis',
+                portkeyVirtualKey: modelInfo.provider === 'openai-jarvis' ? modelInfo.apiKey : undefined,
             });
 
             const completion = await llm.chat(messages);

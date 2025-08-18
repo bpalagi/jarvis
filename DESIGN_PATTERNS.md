@@ -1,6 +1,6 @@
-# Glass: Design Patterns and Architectural Overview
+# Jarvis: Design Patterns and Architectural Overview
 
-Welcome to the Glass project! This document is the definitive guide to the architectural patterns, conventions, and design philosophy that guide our development. Adhering to these principles is essential for building new features, maintaining the quality of our codebase, and ensuring a stable, consistent developer experience.
+Welcome to the Jarvis project! This document is the definitive guide to the architectural patterns, conventions, and design philosophy that guide our development. Adhering to these principles is essential for building new features, maintaining the quality of our codebase, and ensuring a stable, consistent developer experience.
 
 The architecture is designed to be modular, robust, and clear, with a strict separation of concerns.
 

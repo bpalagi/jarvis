@@ -254,7 +254,7 @@ class AskService {
 
             const conversationHistory = this._formatConversationForPrompt(conversationHistoryRaw);
 
-            const systemPrompt = getSystemPrompt('pickle_glass_analysis', conversationHistory, false);
+            const systemPrompt = getSystemPrompt('jarvis_analysis', conversationHistory, false);
 
             const messages = [
                 { role: 'system', content: systemPrompt },
@@ -278,8 +278,8 @@ class AskService {
                 model: modelInfo.model,
                 temperature: 0.7,
                 maxTokens: 2048,
-                usePortkey: modelInfo.provider === 'openai-glass',
-                portkeyVirtualKey: modelInfo.provider === 'openai-glass' ? modelInfo.apiKey : undefined,
+                usePortkey: modelInfo.provider === 'openai-jarvis',
+                portkeyVirtualKey: modelInfo.provider === 'openai-jarvis' ? modelInfo.apiKey : undefined,
             });
 
             try {

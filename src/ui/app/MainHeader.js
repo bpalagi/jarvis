@@ -289,7 +289,7 @@ export class MainHeader extends LitElement {
             width: 16px;
             height: 16px;
         }
-        /* ────────────────[ GLASS BYPASS ]─────────────── */
+        /* ────────────────[ JARVIS BYPASS ]─────────────── */
         
         `;
 

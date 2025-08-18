@@ -90,7 +90,7 @@ class WhisperService extends EventEmitter {
     async downloadFile(url, destination, options = {}) {
         const { 
             onProgress = null,
-            headers = { 'User-Agent': 'Glass-App' },
+            headers = { 'User-Agent': 'Jarvis-App' },
             timeout = 300000,
             modelId = null
         } = options;
@@ -278,7 +278,7 @@ class WhisperService extends EventEmitter {
 
         try {
             const homeDir = os.homedir();
-            const whisperDir = path.join(homeDir, '.glass', 'whisper');
+            const whisperDir = path.join(homeDir, '.jarvis', 'whisper');
             
             this.modelsDir = path.join(whisperDir, 'models');
             this.tempDir = path.join(whisperDir, 'temp');

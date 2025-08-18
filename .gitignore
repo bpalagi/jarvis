@@ -94,7 +94,7 @@ out/
 .specstory
 .specstory/
 
-data/pickleglass.db
+data/jarvis.db
 jarvis_web/backend/__pycache__/
 jarvis_web/venv/
 

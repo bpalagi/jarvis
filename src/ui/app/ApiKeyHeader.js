@@ -436,8 +436,8 @@ export class ApiKeyHeader extends LitElement {
             const sttProviders = [];
 
             for (const id in config) {
-                // 'openai-glass' 같은 가상 Provider는 UI에 표시하지 않음
-                if (id.includes('-glass')) continue;
+                // 'openai-jarvis' 같은 가상 Provider는 UI에 표시하지 않음
+                if (id.includes('-jarvis')) continue;
                 const hasLlmModels = config[id].llmModels.length > 0 || id === 'ollama';
                 const hasSttModels = config[id].sttModels.length > 0 || id === 'whisper';
 
@@ -1914,7 +1914,7 @@ export class ApiKeyHeader extends LitElement {
     openPrivacyPolicy() {
         console.log('🔊 openPrivacyPolicy ApiKeyHeader');
         if (window.api?.common) {
-            window.api.common.openExternal('https://pickle.com/privacy-policy');
+            window.api.common.openExternal('https://jarvis.com/privacy-policy');
         }
     }
 
@@ -2069,7 +2069,7 @@ export class ApiKeyHeader extends LitElement {
                 <div class="footer">
                     Get your API key from: OpenAI | Google | Anthropic
                     <br />
-                    Glass does not collect your personal data —
+                    Jarvis does not collect your personal data —
                     <span class="footer-link" @click=${this.openPrivacyPolicy}>See details</span>
                 </div>
 
