@@ -183,7 +183,8 @@ contextBridge.exposeInMainWorld('api', {
     setSelectedModel: (data) => ipcRenderer.invoke('model:set-selected-model', data),
     
     // Settings Management
-    getPresets: () => ipcRenderer.invoke('settings:getPresets'),
+    getPersonalizePrompt: () => ipcRenderer.invoke('settings:getPersonalizePrompt'),
+    updatePersonalizePrompt: (prompt) => ipcRenderer.invoke('settings:updatePersonalizePrompt', prompt),
     getAutoUpdate: () => ipcRenderer.invoke('settings:get-auto-update'),
     setAutoUpdate: (isEnabled) => ipcRenderer.invoke('settings:set-auto-update', isEnabled),
     getContentProtectionStatus: () => ipcRenderer.invoke('get-content-protection-status'),
@@ -204,8 +205,6 @@ contextBridge.exposeInMainWorld('api', {
     removeOnUserStateChanged: (callback) => ipcRenderer.removeListener('user-state-changed', callback),
     onSettingsUpdated: (callback) => ipcRenderer.on('settings-updated', callback),
     removeOnSettingsUpdated: (callback) => ipcRenderer.removeListener('settings-updated', callback),
-    onPresetsUpdated: (callback) => ipcRenderer.on('presets-updated', callback),
-    removeOnPresetsUpdated: (callback) => ipcRenderer.removeListener('presets-updated', callback),
     onShortcutsUpdated: (callback) => ipcRenderer.on('shortcuts-updated', callback),
     removeOnShortcutsUpdated: (callback) => ipcRenderer.removeListener('shortcuts-updated', callback),
   },

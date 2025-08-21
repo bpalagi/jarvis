@@ -52,14 +52,10 @@ export interface Summary {
   sync_state: 'clean' | 'dirty';
 }
 
-export interface PromptPreset {
+export interface PersonalizePrompt {
   id: string;
-  uid: string;
-  title: string;
   prompt: string;
-  is_default: 0 | 1;
   created_at: number;
-  sync_state: 'clean' | 'dirty';
 }
 
 export interface SessionDetails {
@@ -280,44 +276,30 @@ export const deleteAccount = async (): Promise<void> => {
   if (!response.ok) throw new Error('Failed to delete account');
 };
 
-export const getPresets = async (): Promise<PromptPreset[]> => {
-  const response = await apiCall(`/api/presets`, { method: 'GET' });
-  if (!response.ok) throw new Error('Failed to fetch presets');
+export const getPersonalizePrompt = async (): Promise<PersonalizePrompt> => {
+  const response = await apiCall(`/api/personalize`, { method: 'GET' });
+  if (!response.ok) throw new Error('Failed to fetch personalize prompt');
   return response.json();
 };
 
-export const createPreset = async (data: { title: string, prompt: string }): Promise<{ id: string }> => {
-  const response = await apiCall(`/api/presets`, {
-      method: 'POST',
-      body: JSON.stringify(data),
-  });
-  if (!response.ok) throw new Error('Failed to create preset');
-  return response.json();
-};
-
-export const updatePreset = async (id: string, data: { title: string, prompt: string }): Promise<void> => {
-  const response = await apiCall(`/api/presets/${id}`, {
+export const updatePersonalizePrompt = async (data: { prompt: string }): Promise<void> => {
+  const response = await apiCall(`/api/personalize`, {
       method: 'PUT',
       body: JSON.stringify(data),
   });
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Failed to update preset: ${response.status} ${errorText}`);
+    throw new Error(`Failed to update personalize prompt: ${response.status} ${errorText}`);
   }
-};
-
-export const deletePreset = async (id: string): Promise<void> => {
-  const response = await apiCall(`/api/presets/${id}`, { method: 'DELETE' });
-  if (!response.ok) throw new Error('Failed to delete preset');
 };
 
 export interface BatchData {
     profile?: UserProfile;
-    presets?: PromptPreset[];
+    personalize?: PersonalizePrompt;
     sessions?: Session[];
 }
 
-export const getBatchData = async (includes: ('profile' | 'presets' | 'sessions')[]): Promise<BatchData> => {
+export const getBatchData = async (includes: ('profile' | 'personalize' | 'sessions')[]): Promise<BatchData> => {
   const response = await apiCall(`/api/user/batch?include=${includes.join(',')}`, { method: 'GET' });
   if (!response.ok) throw new Error('Failed to fetch batch data');
   return response.json();

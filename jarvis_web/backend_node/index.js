@@ -30,7 +30,7 @@ function createApp(eventBridge) {
     app.use('/api/auth', require('./routes/auth'));
     app.use('/api/user', require('./routes/user'));
     app.use('/api/conversations', require('./routes/conversations'));
-    app.use('/api/presets', require('./routes/presets'));
+    app.use('/api/personalize', require('./routes/personalize'));
 
     app.get('/api/sync/status', (req, res) => {
         res.json({

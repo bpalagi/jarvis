@@ -237,76 +237,23 @@ async function saveSettings(settings) {
     }
 }
 
-async function getPresets() {
+
+async function getPersonalizePrompt() {
     try {
-        // The adapter now handles which presets to return based on login state.
-        const presets = await settingsRepository.getPresets();
-        return presets;
+        const prompt = await settingsRepository.getPersonalizePrompt();
+        return prompt;
     } catch (error) {
-        console.error('[SettingsService] Error getting presets:', error);
-        return [];
+        console.error('[SettingsService] Error getting personalize prompt:', error);
+        return null;
     }
 }
 
-async function getPresetTemplates() {
+async function updatePersonalizePrompt(prompt) {
     try {
-        const templates = await settingsRepository.getPresetTemplates();
-        return templates;
-    } catch (error) {
-        console.error('[SettingsService] Error getting preset templates:', error);
-        return [];
-    }
-}
-
-async function createPreset(title, prompt) {
-    try {
-        // The adapter injects the UID.
-        const result = await settingsRepository.createPreset({ title, prompt });
-        
-        windowNotificationManager.notifyRelevantWindows('presets-updated', {
-            action: 'created',
-            presetId: result.id,
-            title
-        });
-        
-        return { success: true, id: result.id };
-    } catch (error) {
-        console.error('[SettingsService] Error creating preset:', error);
-        return { success: false, error: error.message };
-    }
-}
-
-async function updatePreset(id, title, prompt) {
-    try {
-        // The adapter injects the UID.
-        await settingsRepository.updatePreset(id, { title, prompt });
-        
-        windowNotificationManager.notifyRelevantWindows('presets-updated', {
-            action: 'updated',
-            presetId: id,
-            title
-        });
-        
+        await settingsRepository.updatePersonalizePrompt({ prompt });
         return { success: true };
     } catch (error) {
-        console.error('[SettingsService] Error updating preset:', error);
-        return { success: false, error: error.message };
-    }
-}
-
-async function deletePreset(id) {
-    try {
-        // The adapter injects the UID.
-        await settingsRepository.deletePreset(id);
-        
-        windowNotificationManager.notifyRelevantWindows('presets-updated', {
-            action: 'deleted',
-            presetId: id
-        });
-        
-        return { success: true };
-    } catch (error) {
-        console.error('[SettingsService] Error deleting preset:', error);
+        console.error('[SettingsService] Error updating personalize prompt:', error);
         return { success: false, error: error.message };
     }
 }
@@ -422,14 +369,10 @@ function notifyPresetUpdate(action, presetId, title = null) {
 module.exports = {
     initialize,
     cleanup,
-    notifyPresetUpdate,
     getSettings,
     saveSettings,
-    getPresets,
-    getPresetTemplates,
-    createPreset,
-    updatePreset,
-    deletePreset,
+    getPersonalizePrompt,
+    updatePersonalizePrompt,
     saveApiKey,
     removeApiKey,
     updateContentProtection,

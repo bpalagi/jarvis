@@ -1,91 +1,31 @@
 const sqliteClient = require('../../common/services/sqliteClient');
 
-function getPresets(uid) {
+function getPersonalizePrompt() {
     const db = sqliteClient.getDb();
     const query = `
-        SELECT * FROM prompt_presets 
-        WHERE uid = ? OR is_default = 1 
-        ORDER BY is_default DESC, title ASC
+        SELECT * FROM personalize
+        LIMIT 1
     `;
     
     try {
-        return db.prepare(query).all(uid) || [];
+        return db.prepare(query).get();
     } catch (err) {
-        console.error('SQLite: Failed to get presets:', err);
+        console.error('SQLite: Failed to get personalize prompt:', err);
         throw err;
     }
 }
 
-function getPresetTemplates() {
+function updatePersonalizePrompt({ prompt }) {
     const db = sqliteClient.getDb();
-    const query = `
-        SELECT * FROM prompt_presets 
-        WHERE is_default = 1 
-        ORDER BY title ASC
-    `;
-    
-    try {
-        return db.prepare(query).all() || [];
-    } catch (err) {
-        console.error('SQLite: Failed to get preset templates:', err);
-        throw err;
-    }
-}
+    const query = `UPDATE personalize SET prompt = ? WHERE id = 'default'`;
 
-function createPreset({ uid, title, prompt }) {
-    const db = sqliteClient.getDb();
-    const id = require('crypto').randomUUID();
-    const now = Math.floor(Date.now() / 1000);
-    const query = `
-        INSERT INTO prompt_presets (id, uid, title, prompt, is_default, created_at, sync_state)
-        VALUES (?, ?, ?, ?, 0, ?, 'dirty')
-    `;
-    
     try {
-        db.prepare(query).run(id, uid, title, prompt, now);
-        return { id };
-    } catch (err) {
-        console.error('SQLite: Failed to create preset:', err);
-        throw err;
-    }
-}
-
-function updatePreset(id, { title, prompt }, uid) {
-    const db = sqliteClient.getDb();
-    const now = Math.floor(Date.now() / 1000);
-    const query = `
-        UPDATE prompt_presets 
-        SET title = ?, prompt = ?, sync_state = 'dirty', updated_at = ?
-        WHERE id = ? AND uid = ? AND is_default = 0
-    `;
-    
-    try {
-        const result = db.prepare(query).run(title, prompt, now, id, uid);
+        const result = db.prepare(query).run(prompt);
         if (result.changes === 0) {
-            throw new Error('Preset not found, is default, or permission denied');
+            throw new Error("Personalize prompt not found.");
         }
         return { changes: result.changes };
     } catch (err) {
-        console.error('SQLite: Failed to update preset:', err);
-        throw err;
-    }
-}
-
-function deletePreset(id, uid) {
-    const db = sqliteClient.getDb();
-    const query = `
-        DELETE FROM prompt_presets 
-        WHERE id = ? AND uid = ? AND is_default = 0
-    `;
-    
-    try {
-        const result = db.prepare(query).run(id, uid);
-        if (result.changes === 0) {
-            throw new Error('Preset not found, is default, or permission denied');
-        }
-        return { changes: result.changes };
-    } catch (err) {
-        console.error('SQLite: Failed to delete preset:', err);
         throw err;
     }
 }
@@ -136,11 +76,8 @@ function setAutoUpdate(uid, isEnabled) {
 }
 
 module.exports = {
-    getPresets,
-    getPresetTemplates,
-    createPreset,
-    updatePreset,
-    deletePreset,
+    getPersonalizePrompt,
+    updatePersonalizePrompt,
     getAutoUpdate,
     setAutoUpdate
 };

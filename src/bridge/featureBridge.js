@@ -4,7 +4,6 @@ const settingsService = require('../features/settings/settingsService');
 const authService = require('../features/common/services/authService');
 const modelStateService = require('../features/common/services/modelStateService');
 const shortcutsService = require('../features/shortcuts/shortcutsService');
-const presetRepository = require('../features/common/repositories/preset');
 const askService = require('../features/ask/askService');
 const listenService = require('../features/listen/listenService');
 const permissionService = require('../features/common/services/permissionService');
@@ -14,7 +13,8 @@ module.exports = {
   // Renderer로부터의 요청을 수신하고 서비스로 전달
   initialize() {
     // Settings Service
-    ipcMain.handle('settings:getPresets', async () => await settingsService.getPresets());
+    ipcMain.handle('settings:getPersonalizePrompt', async () => await settingsService.getPersonalizePrompt());
+    ipcMain.handle('settings:updatePersonalizePrompt', async (event, prompt) => await settingsService.updatePersonalizePrompt(prompt));
     ipcMain.handle('settings:get-auto-update', async () => await settingsService.getAutoUpdateSetting());
     ipcMain.handle('settings:set-auto-update', async (event, isEnabled) => await settingsService.setAutoUpdateSetting(isEnabled));  
     ipcMain.handle('settings:get-model-settings', async () => await settingsService.getModelSettings());
@@ -49,7 +49,6 @@ module.exports = {
     ipcMain.handle('quit-application', () => app.quit());
 
     // General
-    ipcMain.handle('get-preset-templates', () => presetRepository.getPresetTemplates());
     ipcMain.handle('get-web-url', () => process.env.jarvis_WEB_URL || 'http://localhost:3000');
 
     // Ask

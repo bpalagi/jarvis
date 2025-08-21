@@ -152,12 +152,6 @@ class DatabaseInitializer {
                 await sqliteClient.initDefaultData();
             }
 
-            const presetTemplates = await sqliteClient.getPresets('default_user');
-            if (!presetTemplates || presetTemplates.length === 0) {
-                console.log('[DatabaseInitializer] Preset templates missing - creating...');
-                await sqliteClient.initDefaultData();
-            }
-
             console.log('[DatabaseInitializer] Database validation completed');
             return { success: true };
 

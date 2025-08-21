@@ -1,25 +1,13 @@
 const sqliteRepository = require('./sqlite.repository');
 
-const presetRepositoryAdapter = {
-    getPresets: () => {
-        return sqliteRepository.getPresets();
+const personalizeRepositoryAdapter = {
+    getPersonalizePrompt: () => {
+        return sqliteRepository.getPersonalizePrompt();
     },
 
-    getPresetTemplates: () => {
-        return sqliteRepository.getPresetTemplates();
-    },
-
-    create: (options) => {
-        return sqliteRepository.create(options);
-    },
-
-    update: (id, options) => {
-        return sqliteRepository.update(id, options);
-    },
-
-    delete: (id) => {
-        return sqliteRepository.delete(id);
-    },
+    updatePersonalizePrompt: (options) => {
+        return sqliteRepository.updatePersonalizePrompt(options);
+    }
 };
 
-module.exports = presetRepositoryAdapter; 
+module.exports = personalizeRepositoryAdapter;

@@ -33,7 +33,6 @@ export default function HelpPage() {
             </p>
             <ul className="space-y-2 text-sm text-gray-600">
               <li>• Setting up personalized contexts</li>
-              <li>• Selecting presets and creating custom contexts</li>
               <li>• Checking activity records</li>
               <li>• Changing settings</li>
             </ul>
@@ -53,7 +52,7 @@ export default function HelpPage() {
                   How do I change the context?
                 </summary>
                 <p className="text-gray-600 mt-2 pl-4">
-                  On the Personalize page, select a preset or enter a custom context, then click the Save button.
+                  On the Personalize page, enter a custom context, then click the Save button.
                 </p>
               </details>
               <details className="text-sm">
@@ -99,12 +98,11 @@ export default function HelpPage() {
         <div className="mt-8 p-6 bg-blue-50 rounded-lg">
           <h3 className="text-lg font-semibold text-gray-900 mb-2">💡 Tip</h3>
           <p className="text-gray-700">
-            Each context is optimized for different situations. 
-            Choose the appropriate preset for your work environment, 
-            or create your own custom context!
+            Your context is optimized for different situations. 
+            Create your own custom context!
           </p>
         </div>
       </div>
     </div>
   )
-} 
+}

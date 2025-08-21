@@ -61,15 +61,11 @@ const LATEST_SCHEMA = {
             { name: 'sync_state', type: 'TEXT DEFAULT \'clean\'' }
         ]
     },
-    prompt_presets: {
+    personalize: {
         columns: [
             { name: 'id', type: 'TEXT PRIMARY KEY' },
-            { name: 'uid', type: 'TEXT NOT NULL' },
-            { name: 'title', type: 'TEXT NOT NULL' },
             { name: 'prompt', type: 'TEXT NOT NULL' },
-            { name: 'is_default', type: 'INTEGER NOT NULL' },
-            { name: 'created_at', type: 'INTEGER' },
-            { name: 'sync_state', type: 'TEXT DEFAULT \'clean\'' }
+            { name: 'created_at', type: 'INTEGER' }
         ]
     },
     

@@ -240,114 +240,6 @@ export class SettingsView extends LitElement {
             color: rgba(255, 255, 255, 0.4);
         }
 
-        /* Preset Management Section */
-        .preset-section {
-            padding: 6px 0;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .preset-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 4px;
-        }
-
-        .preset-title {
-            font-size: 11px;
-            font-weight: 500;
-            color: white;
-        }
-
-        .preset-count {
-            font-size: 9px;
-            color: rgba(255, 255, 255, 0.5);
-            margin-left: 4px;
-        }
-
-        .preset-toggle {
-            font-size: 10px;
-            color: rgba(255, 255, 255, 0.6);
-            cursor: pointer;
-            padding: 2px 4px;
-            border-radius: 2px;
-            transition: background-color 0.15s ease;
-        }
-
-        .preset-toggle:hover {
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        .preset-list {
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-            max-height: 120px;
-            overflow-y: auto;
-        }
-
-        .preset-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 4px 6px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 3px;
-            cursor: pointer;
-            transition: all 0.15s ease;
-            font-size: 11px;
-            border: 1px solid transparent;
-        }
-
-        .preset-item:hover {
-            background: rgba(255, 255, 255, 0.1);
-            border-color: rgba(255, 255, 255, 0.1);
-        }
-
-        .preset-item.selected {
-            background: rgba(0, 122, 255, 0.25);
-            border-color: rgba(0, 122, 255, 0.6);
-            box-shadow: 0 0 0 1px rgba(0, 122, 255, 0.3);
-        }
-
-        .preset-name {
-            color: white;
-            flex: 1;
-            text-overflow: ellipsis;
-            overflow: hidden;
-            white-space: nowrap;
-            font-weight: 300;
-        }
-
-        .preset-item.selected .preset-name {
-            font-weight: 500;
-        }
-
-        .preset-status {
-            font-size: 9px;
-            color: rgba(0, 122, 255, 0.8);
-            font-weight: 500;
-            margin-left: 6px;
-        }
-
-        .no-presets-message {
-            padding: 12px 8px;
-            text-align: center;
-            color: rgba(255, 255, 255, 0.5);
-            font-size: 10px;
-            line-height: 1.4;
-        }
-
-        .no-presets-message .web-link {
-            color: rgba(0, 122, 255, 0.8);
-            text-decoration: underline;
-            cursor: pointer;
-        }
-
-        .no-presets-message .web-link:hover {
-            color: rgba(0, 122, 255, 1);
-        }
-
         .loading-state {
             display: flex;
             align-items: center;
@@ -472,9 +364,6 @@ export class SettingsView extends LitElement {
         selectedStt: { type: String, state: true },
         isLlmListVisible: { type: Boolean },
         isSttListVisible: { type: Boolean },
-        presets: { type: Array, state: true },
-        selectedPreset: { type: Object, state: true },
-        showPresets: { type: Boolean, state: true },
         autoUpdateEnabled: { type: Boolean, state: true },
         autoUpdateLoading: { type: Boolean, state: true },
     };
@@ -496,9 +385,6 @@ export class SettingsView extends LitElement {
         this.selectedStt = null;
         this.isLlmListVisible = false;
         this.isSttListVisible = false;
-        this.presets = [];
-        this.selectedPreset = null;
-        this.showPresets = false;
         this.handleUseJarvisKey = this.handleUseJarvisKey.bind(this)
         this.autoUpdateEnabled = true;
         this.autoUpdateLoading = true;
@@ -545,10 +431,9 @@ export class SettingsView extends LitElement {
         this.isLoading = true;
         try {
             // Load essential data first
-            const [userState, modelSettings, presets, contentProtection, shortcuts] = await Promise.all([
+            const [userState, modelSettings, contentProtection, shortcuts] = await Promise.all([
                 window.api.settingsView.getCurrentUser(),
                 window.api.settingsView.getModelSettings(), // Facade call
-                window.api.settingsView.getPresets(),
                 window.api.settingsView.getContentProtectionStatus(),
                 window.api.settingsView.getCurrentShortcuts()
             ]);
@@ -565,13 +450,8 @@ export class SettingsView extends LitElement {
                 this.selectedStt = selectedModels.stt;
             }
 
-            this.presets = presets || [];
             this.isContentProtectionOn = contentProtection;
             this.shortcuts = shortcuts || {};
-            if (this.presets.length > 0) {
-                const firstUserPreset = this.presets.find(p => p.is_default === 0);
-                if (firstUserPreset) this.selectedPreset = firstUserPreset;
-            }
             
         } catch (error) {
             console.error('Error loading initial settings data:', error);
@@ -660,24 +540,6 @@ export class SettingsView extends LitElement {
             this.requestUpdate();
         };
 
-        // 프리셋 업데이트 리스너 추가
-        this._presetsUpdatedListener = async (event) => {
-            console.log('[SettingsView] Received presets-updated, refreshing presets');
-            try {
-                const presets = await window.api.settingsView.getPresets();
-                this.presets = presets || [];
-                
-                // 현재 선택된 프리셋이 삭제되었는지 확인 (사용자 프리셋만 고려)
-                const userPresets = this.presets.filter(p => p.is_default === 0);
-                if (this.selectedPreset && !userPresets.find(p => p.id === this.selectedPreset.id)) {
-                    this.selectedPreset = userPresets.length > 0 ? userPresets[0] : null;
-                }
-                
-                this.requestUpdate();
-            } catch (error) {
-                console.error('[SettingsView] Failed to refresh presets:', error);
-            }
-        };
         this._shortcutListener = (event, keybinds) => {
             console.log('[SettingsView] Received updated shortcuts:', keybinds);
             this.shortcuts = keybinds;
@@ -685,7 +547,6 @@ export class SettingsView extends LitElement {
         
         window.api.settingsView.onUserStateChanged(this._userStateListener);
         window.api.settingsView.onSettingsUpdated(this._settingsUpdatedListener);
-        window.api.settingsView.onPresetsUpdated(this._presetsUpdatedListener);
         window.api.settingsView.onShortcutsUpdated(this._shortcutListener);
     }
 
@@ -697,9 +558,6 @@ export class SettingsView extends LitElement {
         }
         if (this._settingsUpdatedListener) {
             window.api.settingsView.removeOnSettingsUpdated(this._settingsUpdatedListener);
-        }
-        if (this._presetsUpdatedListener) {
-            window.api.settingsView.removeOnPresetsUpdated(this._presetsUpdatedListener);
         }
         if (this._shortcutListener) {
             window.api.settingsView.removeOnShortcutsUpdated(this._shortcutListener);
@@ -774,16 +632,6 @@ export class SettingsView extends LitElement {
 
         const keys = accelerator.split('+');
         return html`${keys.map(key => html`<span class="shortcut-key">${keyMap[key] || key}</span>`)}`;
-    }
-
-    togglePresets() {
-        this.showPresets = !this.showPresets;
-    }
-
-    async handlePresetSelect(preset) {
-        this.selectedPreset = preset;
-        // Here you could implement preset application logic
-        console.log('Selected preset:', preset);
     }
 
     handleMoveLeft() {
@@ -1087,35 +935,6 @@ export class SettingsView extends LitElement {
                             </div>
                         </div>
                     `)}
-                </div>
-
-                <div class="preset-section">
-                    <div class="preset-header">
-                        <span class="preset-title">
-                            My Presets
-                            <span class="preset-count">(${this.presets.filter(p => p.is_default === 0).length})</span>
-                        </span>
-                        <span class="preset-toggle" @click=${this.togglePresets}>
-                            ${this.showPresets ? '▼' : '▶'}
-                        </span>
-                    </div>
-                    
-                    <div class="preset-list ${this.showPresets ? '' : 'hidden'}">
-                        ${this.presets.filter(p => p.is_default === 0).length === 0 ? html`
-                            <div class="no-presets-message">
-                                No custom presets yet.<br>
-                                <span class="web-link" @click=${this.handlePersonalize}>
-                                    Create your first preset
-                                </span>
-                            </div>
-                        ` : this.presets.filter(p => p.is_default === 0).map(preset => html`
-                            <div class="preset-item ${this.selectedPreset?.id === preset.id ? 'selected' : ''}"
-                                 @click=${() => this.handlePresetSelect(preset)}>
-                                <span class="preset-name">${preset.title}</span>
-                                ${this.selectedPreset?.id === preset.id ? html`<span class="preset-status">Selected</span>` : ''}
-                            </div>
-                        `)}
-                    </div>
                 </div>
 
                 <div class="buttons-section">

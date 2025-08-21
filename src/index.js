@@ -281,7 +281,7 @@ function setupWebDataHandlers() {
     const summaryRepository = require('./features/listen/summary/repositories');
     const askRepository = require('./features/ask/repositories');
     const userRepository = require('./features/common/repositories/user');
-    const presetRepository = require('./features/common/repositories/preset');
+    const personalizeRepository = require('./features/common/repositories/preset');
 
     const handleRequest = async (channel, responseChannel, payload) => {
         let result;
@@ -344,39 +344,25 @@ function setupWebDataHandlers() {
                     result = await userRepository.deleteById();
                     break;
 
-                // PRESET
-                case 'get-presets':
-                    // Adapter injects UID
-                    result = await presetRepository.getPresets();
+                // PERSONALIZE
+                case 'get-personalize-prompt':
+                    result = await personalizeRepository.getPersonalizePrompt();
                     break;
-                case 'create-preset':
-                    // Adapter injects UID
-                    result = await presetRepository.create(payload);
-                    settingsService.notifyPresetUpdate('created', result.id, payload.title);
-                    break;
-                case 'update-preset':
-                    // Adapter injects UID
-                    result = await presetRepository.update(payload.id, payload.data);
-                    settingsService.notifyPresetUpdate('updated', payload.id, payload.data.title);
-                    break;
-                case 'delete-preset':
-                    // Adapter injects UID
-                    result = await presetRepository.delete(payload);
-                    settingsService.notifyPresetUpdate('deleted', payload);
+                case 'update-personalize-prompt':
+                    result = await personalizeRepository.updatePersonalizePrompt(payload);
                     break;
                 
                 // BATCH
                 case 'get-batch-data':
-                    const includes = payload ? payload.split(',').map(item => item.trim()) : ['profile', 'presets', 'sessions'];
+                    const includes = payload ? payload.split(',').map(item => item.trim()) : ['profile', 'personalize', 'sessions'];
                     const promises = {};
             
                     if (includes.includes('profile')) {
                         // Adapter injects UID
                         promises.profile = userRepository.getById();
                     }
-                    if (includes.includes('presets')) {
-                        // Adapter injects UID
-                        promises.presets = presetRepository.getPresets();
+                    if (includes.includes('personalize')) {
+                        promises.personalize = personalizeRepository.getPersonalizePrompt();
                     }
                     if (includes.includes('sessions')) {
                         // Adapter injects UID
