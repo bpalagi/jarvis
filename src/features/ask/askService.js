@@ -215,7 +215,7 @@ class AskService {
      * @param {string} userPrompt
      * @returns {Promise<{success: boolean, response?: string, error?: string}>}
      */
-    async sendMessage(userPrompt, conversationHistoryRaw=[]) {
+    async sendMessage(userPrompt) {
         internalBridge.emit('window:requestVisibility', { name: 'ask', visible: true });
         this.state = {
             ...this.state,
@@ -232,7 +232,6 @@ class AskService {
         }
         this.abortController = new AbortController();
         const { signal } = this.abortController;
-
 
         let sessionId;
 
@@ -252,9 +251,11 @@ class AskService {
             const screenshotResult = await captureScreenshot({ quality: 'medium' });
             const screenshotBase64 = screenshotResult.success ? screenshotResult.base64 : null;
 
-            const conversationHistory = this._formatConversationForPrompt(conversationHistoryRaw);
+            // Fetch the personalize prompt
+            const personalizePromptData = await settingsService.getPersonalizePrompt();
+            const personalizePrompt = personalizePromptData ? personalizePromptData.prompt : '';
 
-            const systemPrompt = getSystemPrompt('jarvis_analysis', conversationHistory, false);
+            const systemPrompt = getSystemPrompt('interview', personalizePrompt, false);
 
             const messages = [
                 { role: 'system', content: systemPrompt },

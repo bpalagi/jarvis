@@ -40,6 +40,33 @@ The application uses the local SQLite database for all data persistence.
 
 ---
 
+### 3. The Personalize Feature and LLM Prompt Construction
+
+The "Personalize" feature allows users to define a single, custom prompt that influences the AI's behavior and responses. This prompt is stored in the local SQLite database and is integrated into the system prompt sent to the Large Language Model (LLM).
+
+**Data Storage and Access:**
+-   The personalize prompt is stored in the `personalize` table within the SQLite database.
+-   It is accessed via `src/features/common/repositories/preset/sqlite.repository.js` (which, despite its name, now handles the single personalize prompt) and exposed through `settingsService.js`.
+
+**LLM Prompt Construction Flow:**
+When a user interacts with the AI (e.g., by asking a question), the final prompt sent to the LLM is constructed through a multi-step process:
+
+1.  **User Query:** The user's direct input (e.g., "What is the capital of France?").
+2.  **Personalize Prompt Retrieval:** `askService.js` fetches the single personalize prompt from the database using `settingsService.getPersonalizePrompt()`.
+3.  **System Prompt Building (`promptBuilder.js`):**
+    -   The `src/features/common/prompts/promptBuilder.js` module is responsible for assembling the core "system prompt." This system prompt acts as a set of instructions or a persona for the LLM, guiding its overall behavior.
+    -   The personalize prompt is passed as a `customPrompt` argument to `promptBuilder.getSystemPrompt()`. This means your custom instructions are directly embedded within the system prompt.
+    -   Other elements, such as general instructions for the AI's role (e.g., "You are an interview assistant") and rules for using tools like Google Search, are also included in this system prompt.
+4.  **Final Message Assembly (`askService.js`):**
+    -   `askService.js` combines the constructed system prompt with the user's query and any other relevant context (e.g., conversation history, screenshot data for multimodal models) into a structured message format (e.g., an array of role-based messages).
+    -   This complete message is then sent to the selected LLM.
+
+**System Prompt vs. Personalize Prompt:**
+-   **Personalize Prompt:** This is the specific, user-defined text (e.g., "Always respond concisely and professionally.") that you configure in the "Personalize" tab. It's your direct instruction to the AI.
+-   **System Prompt:** This is the comprehensive set of instructions that the application sends to the LLM. It *includes* your personalize prompt, along with other predefined instructions that ensure the AI functions correctly within the Jarvis ecosystem (e.g., formatting requirements, how to use internal tools, general behavioral guidelines). The personalize prompt effectively customizes a part of this larger system prompt.
+
+---
+
 ## II. Web Dashboard Architecture (`jarvis_web/`)
 
 This section details the architecture of the Next.js web application, which serves as the user-facing dashboard for account management and viewing data from the local database via the Electron main process.
