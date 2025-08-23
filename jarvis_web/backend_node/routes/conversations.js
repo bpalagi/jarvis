@@ -45,10 +45,18 @@ router.delete('/:session_id', async (req, res) => {
     }
 });
 
-// The search functionality will be more complex to move to IPC.
-// For now, we can disable it or leave it as is, knowing it's a future task.
-router.get('/search', (req, res) => {
-    res.status(501).json({ error: 'Search not implemented for IPC bridge yet.' });
+router.get('/search', async (req, res) => {
+    const query = req.query.q;
+    if (!query) {
+        return res.status(400).json({ error: 'Query parameter "q" is required.' });
+    }
+    try {
+        const sessions = await ipcRequest(req, 'search-sessions', { query });
+        res.json(sessions);
+    } catch (error) {
+        console.error('Failed to search sessions via IPC:', error);
+        res.status(500).json({ error: 'Failed to search sessions' });
+    }
 });
 
 module.exports = router; 

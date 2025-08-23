@@ -33,6 +33,11 @@ const sessionRepositoryAdapter = {
         const uid = authService.getCurrentUserId();
         return sqliteRepository.endAllActiveSessions(uid);
     },
+
+    searchByTerm: (term) => {
+        const uid = authService.getCurrentUserId();
+        return sqliteRepository.searchByTerm(uid, term);
+    },
 };
 
 module.exports = sessionRepositoryAdapter; 

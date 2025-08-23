@@ -124,6 +124,26 @@ function endAllActiveSessions(uid) {
     }
 }
 
+function searchByTerm(uid, term) {
+    const db = sqliteClient.getDb();
+    const searchTerm = `%${term}%`;
+    const query = `
+        SELECT s.*
+        FROM sessions s
+        WHERE s.uid = ? AND s.id IN (
+            SELECT session_id FROM transcripts WHERE text LIKE ?
+            UNION
+            SELECT session_id FROM ai_messages WHERE content LIKE ?
+            UNION
+            SELECT session_id FROM summaries WHERE tldr LIKE ? OR text LIKE ?
+            UNION
+            SELECT id FROM sessions WHERE title LIKE ?
+        )
+        ORDER BY s.started_at DESC
+    `;
+    return db.prepare(query).all(uid, searchTerm, searchTerm, searchTerm, searchTerm, searchTerm);
+}
+
 module.exports = {
     getById,
     create,
@@ -135,4 +155,5 @@ module.exports = {
     touch,
     getOrCreateActive,
     endAllActiveSessions,
+    searchByTerm,
 }; 

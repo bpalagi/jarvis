@@ -48,25 +48,39 @@ Gemini has not only stripped down the service and ramped me up on the structure
 
 
 
+what was the handleCopyHover() thing even supposed to be for?
+
+
+took Personalize, Settings, bottomItems off the Web UI, what else needs to be cleaned up there? like the personalize page removed, but is it removed from the LLM prompt?
+
+
+Cleanup more logs:
+[Layout Debug] adjustWindowHeight: targetHeight=61
+[Layout Debug] calculateWindowHeightAdjustment: targetHeight=61
+[WindowManager] Header lost focus
+
+Rip Out Pickle logo that links to jarvis.com
+* link it to x.com/TangLLC
 
 
 
-* Can you update the shortcutService to assume Mac, no need to accept ctrl. Translate any comments that are not in English
-    * still looking to strip this down to the minimum functionality I need
-* clean up the logging of unnessecary events like the mouse hovering over the non-web app UI
-    * also, resolve the issues that are preventing search from functioning.
-    * after Search, the UI can be stripped to just that and My Activity
-    * remove inessential code.
 
 
 
-Would like change the conversation history tab on front end to be a live, interactive dashboard including transcription, summary, ask and guide functionality
-* this is likely part of a bigger web-ui refresh...
-    * personalize tab might not be the way.
-    * not sure if anything here is needed besides the conversation history.
+
+then can go back and dial in the live hidden display for Ask, Guidance mode without the web-ui
 
 
 
+let's try improving the web-ui
+* would like to change the conversation history tab on front end to be a live, interactive dashboard including transcription, summary, ask and guide functionality
+* search doesn't seem to work yet, can we implement this as bringing us to the most relevant location within a conversation history?
+
+
+
+
+now go try cluely ( i think there's a free trial )
+* see what they've got making it next level??
 
 
 

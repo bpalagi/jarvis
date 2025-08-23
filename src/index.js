@@ -317,6 +317,9 @@ function setupWebDataHandlers() {
                     }
                     result = { id };
                     break;
+                case 'search-sessions':
+                    result = await sessionRepository.searchByTerm(payload.query);
+                    break;
                 
                 // USER
                 case 'get-user-profile':

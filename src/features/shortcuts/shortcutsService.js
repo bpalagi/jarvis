@@ -57,21 +57,20 @@ class ShortcutsService {
     }
 
     getDefaultKeybinds() {
-        const isMac = process.platform === 'darwin';
         return {
-            moveUp: isMac ? 'Cmd+Up' : 'Ctrl+Up',
-            moveDown: isMac ? 'Cmd+Down' : 'Ctrl+Down',
-            moveLeft: isMac ? 'Cmd+Left' : 'Ctrl+Left',
-            moveRight: isMac ? 'Cmd+Right' : 'Ctrl+Right',
-            toggleVisibility: isMac ? 'Cmd+\\' : 'Ctrl+\\',
-            toggleClickThrough: isMac ? 'Cmd+M' : 'Ctrl+M',
-            nextStep: isMac ? 'Cmd+Enter' : 'Ctrl+Enter',
-            getGuidance: isMac ? 'Cmd+\'': 'Ctrl+\'',
-            manualScreenshot: isMac ? 'Cmd+Shift+S' : 'Ctrl+Shift+S',
-            previousResponse: isMac ? 'Cmd+[' : 'Ctrl+[',
-            nextResponse: isMac ? 'Cmd+]' : 'Ctrl+]',
-            scrollUp: isMac ? 'Cmd+Shift+Up' : 'Ctrl+Shift+Up',
-            scrollDown: isMac ? 'Cmd+Shift+Down' : 'Ctrl+Shift+Down',
+            moveUp: 'Cmd+Up',
+            moveDown: 'Cmd+Down',
+            moveLeft: 'Cmd+Left',
+            moveRight: 'Cmd+Right',
+            toggleVisibility: 'Cmd+\'',
+            toggleClickThrough: 'Cmd+M',
+            nextStep: 'Cmd+Enter',
+            getGuidance: 'Cmd+\'',
+            manualScreenshot: 'Cmd+Shift+S',
+            previousResponse: 'Cmd+[' ,
+            nextResponse: 'Cmd+]' ,
+            scrollUp: 'Cmd+Shift+Up',
+            scrollDown: 'Cmd+Shift+Down',
         };
     }
 
@@ -170,22 +169,19 @@ class ShortcutsService {
         }
 
         // --- Hardcoded shortcuts ---
-        const isMac = process.platform === 'darwin';
-        const modifier = isMac ? 'Cmd' : 'Ctrl';
-        
         // Monitor switching
         const displays = screen.getAllDisplays();
         if (displays.length > 1) {
             displays.forEach((display, index) => {
-                const key = `${modifier}+Shift+${index + 1}`;
+                const key = `Cmd+Shift+${index + 1}`;
                 globalShortcut.register(key, () => internalBridge.emit('window:moveToDisplay', { displayId: display.id }));
             });
         }
 
         // Edge snapping
         const edgeDirections = [
-            { key: `${modifier}+Shift+Left`, direction: 'left' },
-            { key: `${modifier}+Shift+Right`, direction: 'right' },
+            { key: `Cmd+Shift+Left`, direction: 'left' },
+            { key: `Cmd+Shift+Right`, direction: 'right' },
         ];
         edgeDirections.forEach(({ key, direction }) => {
             globalShortcut.register(key, () => {
