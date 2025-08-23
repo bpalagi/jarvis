@@ -329,4 +329,5 @@ Keep all points concise and build upon previous analysis if provided.`,
     }
 }
 
-module.exports = SummaryService; 
+const summaryService = new SummaryService();
+module.exports = summaryService; 

@@ -41,15 +41,13 @@ Gemini has not only stripped down the service and ramped me up on the structure
 
 
 
+summary and followup context still logged... just not displayed.
 
-
-run the app, see how we're doing, commit
-* what's the ask window compared to cmd+enter
 * where is the prompt still being told about an interview setting?
 * how does the app determine "you" vs "them" in conversation? Is it just mic audio vs system audio
-
-Can update the shortcutService to assume Mac, no need to accept ctrl
-* still looking to strip this down to the minimum where I can.
+* Can update the shortcutService to assume Mac, no need to accept ctrl. Translate any comments that are not in English
+    * still looking to strip this down to the minimum where I can.
+* clean up the logging of unnessecary events like the mouse hovering over the non-web app UI
 
 
 Would like change the conversation history tab on front end to be a live, interactive dashboard including transcription, summary, ask and guide functionality

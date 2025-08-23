@@ -1,6 +1,6 @@
 const { BrowserWindow } = require('electron');
 const SttService = require('./stt/sttService');
-const SummaryService = require('./summary/summaryService');
+const summaryService = require('./summary/summaryService');
 const authService = require('../common/services/authService');
 const sessionRepository = require('../common/repositories/session');
 const sttRepository = require('./stt/repositories');
@@ -9,7 +9,7 @@ const internalBridge = require('../../bridge/internalBridge');
 class ListenService {
     constructor() {
         this.sttService = new SttService();
-        this.summaryService = new SummaryService();
+        this.summaryService = summaryService;
         this.currentSessionId = null;
         this.isInitializingSession = false;
 
