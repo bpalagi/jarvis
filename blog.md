@@ -32,7 +32,7 @@ demo convo
 
 Gemini has not only stripped down the service and ramped me up on the structure
 * has resolved issues with conversation history, created the ask/guide rather than summary/followup workflow
-* rebuilt how the prompt flow operates, etc.
+* rebuilt how the prompt flow operates in real time, rebuilt the web ui, etc.
 
 
 
@@ -48,10 +48,6 @@ Gemini has not only stripped down the service and ramped me up on the structure
 
 
 
-what was the handleCopyHover() thing even supposed to be for?
-
-
-took Personalize, Settings, bottomItems off the Web UI, what else needs to be cleaned up there? like the personalize page removed, but is it removed from the LLM prompt?
 
 
 Cleanup more logs:
@@ -64,12 +60,8 @@ Rip Out Pickle logo that links to jarvis.com
 
 
 
-
-
-
-
 then can go back and dial in the live hidden display for Ask, Guidance mode without the web-ui
-
+* check that the shortcuts work
 
 
 let's try improving the web-ui
@@ -77,10 +69,14 @@ let's try improving the web-ui
 * search doesn't seem to work yet, can we implement this as bringing us to the most relevant location within a conversation history?
 
 
-
-
 now go try cluely ( i think there's a free trial )
 * see what they've got making it next level??
+
+
+
+
+
+
 
 
 

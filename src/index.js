@@ -347,13 +347,7 @@ function setupWebDataHandlers() {
                     result = await userRepository.deleteById();
                     break;
 
-                // PERSONALIZE
-                case 'get-personalize-prompt':
-                    result = await personalizeRepository.getPersonalizePrompt();
-                    break;
-                case 'update-personalize-prompt':
-                    result = await personalizeRepository.updatePersonalizePrompt(payload);
-                    break;
+                
                 
                 // BATCH
                 case 'get-batch-data':
