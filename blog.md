@@ -50,17 +50,20 @@ Gemini has not only stripped down the service and ramped me up on the structure
 
 
 
-Cleanup more logs:
-[Layout Debug] adjustWindowHeight: targetHeight=61
-[Layout Debug] calculateWindowHeightAdjustment: targetHeight=61
-[WindowManager] Header lost focus
-
 Rip Out Pickle logo that links to jarvis.com
 * link it to x.com/TangLLC
+* "it's mine"
+
+
+now go try cluely ( i think there's a free trial )
+* see what they've got making it next level??
 
 
 
-then can go back and dial in the live hidden display for Ask, Guidance mode without the web-ui
+
+
+
+dial in the live hidden display for Ask, Guidance mode without the web-ui
 * check that the shortcuts work
 
 
@@ -68,9 +71,6 @@ let's try improving the web-ui
 * would like to change the conversation history tab on front end to be a live, interactive dashboard including transcription, summary, ask and guide functionality
 * search doesn't seem to work yet, can we implement this as bringing us to the most relevant location within a conversation history?
 
-
-now go try cluely ( i think there's a free trial )
-* see what they've got making it next level??
 
 
 

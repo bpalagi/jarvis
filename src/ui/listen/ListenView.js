@@ -420,6 +420,16 @@ export class ListenView extends LitElement {
         this.requestUpdate();
     }
 
+    handleCopyHover(isHovering) {
+        this.isHovering = isHovering;
+        if (isHovering) {
+            this.isAnimating = true;
+        } else {
+            this.isAnimating = false;
+        }
+        this.requestUpdate();
+    }
+
     
 
     async handleCopy() {
@@ -523,6 +533,8 @@ export class ListenView extends LitElement {
                         <button
                             class="copy-button ${this.copyState === 'copied' ? 'copied' : ''}"
                             @click=${this.handleCopy}
+                            @mouseenter=${() => this.handleCopyHover(true)}
+                            @mouseleave=${() => this.handleCopyHover(false)}
                         >
                             <svg class="copy-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />

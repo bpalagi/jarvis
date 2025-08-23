@@ -237,7 +237,6 @@ function changeAllWindowsVisibility(windowPool, targetVisibility) {
  * @param {boolean} shouldBeVisible 
  */
 async function handleWindowVisibilityRequest(windowPool, layoutManager, movementManager, name, shouldBeVisible) {
-    console.log(`[WindowManager] Request: set '${name}' visibility to ${shouldBeVisible}`);
     const win = windowPool.get(name);
 
     if (!win || win.isDestroyed()) {
@@ -248,7 +247,6 @@ async function handleWindowVisibilityRequest(windowPool, layoutManager, movement
     if (name !== 'settings') {
         const isCurrentlyVisible = win.isVisible();
         if (isCurrentlyVisible === shouldBeVisible) {
-            console.log(`[WindowManager] Window '${name}' is already in the desired state.`);
             return;
         }
     }
@@ -478,7 +476,7 @@ function createFeatureWindows(header, namesToCreate) {
                     settings.setWindowButtonVisibility(false);
                 }
                 const settingsLoadOptions = { query: { view: 'settings' } };
-                settings.loadFile(path.join(__dirname,'../ui/app/content.html'), settingsLoadOptions)
+                settings.loadFile(path.join(__dirname, '../ui/app/content.html'), settingsLoadOptions)
                         .catch(console.error);
                 windowPool.set('settings', settings);  
 
@@ -627,13 +625,7 @@ function createWindows() {
     
     
 
-    header.on('focus', () => {
-        console.log('[WindowManager] Header gained focus');
-    });
-
-    header.on('blur', () => {
-        console.log('[WindowManager] Header lost focus');
-    });
+    
 
     header.webContents.on('before-input-event', (event, input) => {
         if (input.type === 'mouseDown') {
