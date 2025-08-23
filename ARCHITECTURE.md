@@ -95,7 +95,7 @@ This flow is for when the user has a **specific question**.
     *   **Visual Context**: A real-time screenshot.
     *   **Audio Context**: The recent conversation history from `listenService`.
     *   **User Query**: The text typed by the user (if any).
-3.  **LLM Call**: The context is combined into a `fullPrompt` and sent to the LLM with a prompt profile optimized for question-answering (`interview`).
+3.  **LLM Call**: The context is combined into a `fullPrompt` and sent to the LLM with a prompt profile optimized for question-answering (`jarvis`).
 4.  **Response**: The answer is streamed to the Ask window.
 
 #### B. Guide Mode (`Cmd+'`) 
@@ -110,6 +110,16 @@ This flow is for when the user wants **proactive guidance** on what to do or say
     *   **Analysis Context**: The most recent silent analysis from `summaryService.getPreviousAnalysisResult()`.
 3.  **LLM Call**: The context is combined and sent to the LLM with a new, specialized prompt profile (`guidance`) that asks the AI to suggest the best next steps.
 4.  **Response**: The suggested guidance is streamed to the Ask window.
+
+### 3. AI Prompting Profiles
+
+The application uses a system of prompt profiles to instruct the AI on how to behave for different tasks. These profiles are defined in `src/features/common/prompts/promptTemplates.js`. The three core profiles are:
+
+*   **`jarvis` (The "Ask" Profile)**: A general-purpose assistant that follows a decision tree to answer questions. It first tries to answer a direct question from the conversation, then defines proper nouns, then solves problems on the screen, and finally falls back to a neutral state if it can't determine the user's intent. It is the default for the `Cmd+Enter` "Ask" feature.
+
+*   **`guidance` (The "Guide" Profile)**: A proactive assistant designed to provide actionable next steps. It is triggered by the `Cmd+'` shortcut and its goal is to answer the implicit question, "What should I do or say next?" based on the full context.
+
+*   **`jarvis_analysis` (The Background Engine Profile)**: A silent, efficient summarizer. It runs automatically in the background to create a running summary of the conversation. This summary is then used as context for the `jarvis` and `guidance` profiles, giving them a memory of what was discussed. It is also the source of the content for the "Live Insights" tab.
 
 
 

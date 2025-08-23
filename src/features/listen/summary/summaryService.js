@@ -223,7 +223,8 @@ Keep the topic and summary points concise.`,
 
             const data = await this.makeOutlineAndRequests(this.conversationHistory);
             if (data) {
-                // Notify callback if it exists, but do not send to renderer
+                this.sendToRenderer('summary-update', data);
+                // Notify callback if it exists
                 if (this.onAnalysisComplete) {
                     this.onAnalysisComplete(data);
                 }

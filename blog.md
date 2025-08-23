@@ -32,6 +32,7 @@ demo convo
 
 Gemini has not only stripped down the service and ramped me up on the structure
 * has resolved issues with conversation history, created the ask/guide rather than summary/followup workflow
+* rebuilt how the prompt flow operates, etc.
 
 
 
@@ -41,32 +42,30 @@ Gemini has not only stripped down the service and ramped me up on the structure
 
 
 
-where was the interview prompt that was switched out for jarvis prompt?
-* is this in the databse, or what is the prompt now?
-
-
-I want proactice responses to the conversation to be properly dispalyed in the apps insights UI 
-
-
-
-* where is the prompt still being told about an interview setting?
-* how does the app determine "you" vs "them" in conversation? Is it just mic audio vs system audio
 
 
 
 
 
-* Can update the shortcutService to assume Mac, no need to accept ctrl. Translate any comments that are not in English
-    * still looking to strip this down to the minimum where I can.
+
+
+
+
+* Can you update the shortcutService to assume Mac, no need to accept ctrl. Translate any comments that are not in English
+    * still looking to strip this down to the minimum functionality I need
 * clean up the logging of unnessecary events like the mouse hovering over the non-web app UI
+    * also, resolve the issues that are preventing search from functioning.
+    * after Search, the UI can be stripped to just that and My Activity
+    * remove inessential code.
+
 
 
 Would like change the conversation history tab on front end to be a live, interactive dashboard including transcription, summary, ask and guide functionality
+* this is likely part of a bigger web-ui refresh...
+    * personalize tab might not be the way.
+    * not sure if anything here is needed besides the conversation history.
 
 
-
-
-Can still better understand js, ts, next, express, etc.
 
 
 
