@@ -436,12 +436,12 @@ const SidebarComponent = ({ isCollapsed, onToggle, onSearchClick }: SidebarProps
                     </Link>
                 ) : (
                     <>
-                        <Link href="https://jarvis.com" target="_blank" rel="noopener noreferrer" className="flex items-center">
+                        <Link href="https://x.com/TangLLC" target="_blank" rel="noopener noreferrer" className="flex items-center">
                             <Image
-                                src={isCollapsed ? '/symbol.svg' : '/word.svg'}
+                                src={isCollapsed ? '/symbol.svg' : '/jarvis-logo.svg'}
                                 alt="Jarvis Logo"
-                                width={50}
-                                height={14}
+                                width={24}
+                                height={24}
                                 className="mx-3 shrink-0"
                             />
                         </Link>

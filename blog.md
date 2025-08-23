@@ -50,9 +50,8 @@ Gemini has not only stripped down the service and ramped me up on the structure
 
 
 
-Rip Out Pickle logo that links to jarvis.com
-* link it to x.com/TangLLC
-* "it's mine"
+
+
 
 
 now go try cluely ( i think there's a free trial )
@@ -65,6 +64,7 @@ now go try cluely ( i think there's a free trial )
 
 dial in the live hidden display for Ask, Guidance mode without the web-ui
 * check that the shortcuts work
+* clean up the little ... drop down
 
 
 let's try improving the web-ui
@@ -72,7 +72,7 @@ let's try improving the web-ui
 * search doesn't seem to work yet, can we implement this as bringing us to the most relevant location within a conversation history?
 
 
-
+implement iron man styling, but keep it clean and classy, have some taste here.
 
 
 
