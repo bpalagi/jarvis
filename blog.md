@@ -37,15 +37,13 @@ demo convo
 
 
 
-is the authService even needed?? I've tried to strip this down for my local usage, not all of the UI functionality is even needed.
-* test first.
 
 
 
-Gemini has not only stripped down the service and ramped me up on the structure - add activity history info to ARCH.md???
+Gemini has not only stripped down the service and ramped me up on the structure
 * has resolved issues with conversation history, improved functionality of how to provide guidance
-* looking to adjust summary service to provide guidance in real time, rather than needing to be prompted for insights or followup
-* now I see it requires five dialouge turns, and does not include screen input... how can we improve on that simple approach...
+    * looking to adjust summary service to provide guidance in real time, rather than needing to be prompted for insights or followup
+    * now I see it requires five dialouge turns, and does not include screen input... how can we improve on that simple approach...
 
 
 

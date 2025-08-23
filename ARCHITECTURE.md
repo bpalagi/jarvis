@@ -136,3 +136,17 @@ When the web frontend needs data that resides in the local SQLite database, it f
 
 This round-trip ensures our core principle of centralizing data logic in the main process is never violated.
 
+### 3. "My Activity" Page Data Flow
+
+To illustrate the IPC data flow, here is the end-to-end sequence for populating the "My Activity" page with the user's conversation history:
+
+1.  **Frontend Request**: The React component at `jarvis_web/app/activity/page.tsx` calls the `getSessions()` function from the `utils/api.ts` module.
+2.  **API Call**: `getSessions()` makes a `fetch` request to the local web dashboard's backend at `GET /api/conversations`.
+3.  **Backend Route**: The Express server (`backend_node/routes/conversations.js`) receives the request. It has no database logic itself.
+4.  **IPC Bridge**: The route handler calls `ipcRequest`, which sends an IPC message to the Electron main process. The message channel is `web-data-request`, and the payload includes the specific action to perform: `'get-sessions'`.
+5.  **Main Process Listener**: A listener in `src/index.js` on the `web-data-request` channel receives the message.
+6.  **Repository Request**: The handler identifies the `'get-sessions'` action and calls `sessionRepository.getAllByUserId()`.
+7.  **User ID Injection**: The `sessionRepository` is an adapter (`repositories/session/index.js`). Before calling the database, it retrieves the current user's ID from the `authService`. This step is crucial, as it tells the database *which* user's sessions to fetch. The `authService` provides a default, anonymous user ID for local-only operation.
+8.  **Database Query**: The adapter calls the function in `sqlite.repository.js`, which executes the final `SELECT * FROM sessions WHERE uid = ?` SQL query against the local SQLite database.
+9.  **Return Trip**: The query results are returned all the way back up the chain: from the database to the repository, to the main process, over IPC to the web backend, and finally as an HTTP JSON response to the frontend, where the React component renders the activity list.
+
