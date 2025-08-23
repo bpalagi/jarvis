@@ -1,14 +1,17 @@
 const sqliteRepository = require('./sqlite.repository');
+const authService = require('../../services/authService');
 
 const sessionRepositoryAdapter = {
     getById: (id) => sqliteRepository.getById(id),
     
     create: (type = 'ask') => {
-        return sqliteRepository.create(type);
+        const uid = authService.getCurrentUserId();
+        return sqliteRepository.create(uid, type);
     },
     
     getAllByUserId: () => {
-        return sqliteRepository.getAllByUserId();
+        const uid = authService.getCurrentUserId();
+        return sqliteRepository.getAllByUserId(uid);
     },
 
     updateTitle: (id, title) => sqliteRepository.updateTitle(id, title),
@@ -22,11 +25,13 @@ const sessionRepositoryAdapter = {
     touch: (id) => sqliteRepository.touch(id),
 
     getOrCreateActive: (requestedType = 'ask') => {
-        return sqliteRepository.getOrCreateActive(requestedType);
+        const uid = authService.getCurrentUserId();
+        return sqliteRepository.getOrCreateActive(uid, requestedType);
     },
 
     endAllActiveSessions: () => {
-        return sqliteRepository.endAllActiveSessions();
+        const uid = authService.getCurrentUserId();
+        return sqliteRepository.endAllActiveSessions(uid);
     },
 };
 
