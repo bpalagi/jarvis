@@ -40,7 +40,7 @@ The application uses the local SQLite database for all data persistence.
 
 ---
 
-### 3. The Personalize Feature and LLM Prompt Construction
+## II. The Personalize Feature and LLM Prompt Construction
 
 The "Personalize" feature allows users to define a single, custom prompt that influences the AI's behavior and responses. This prompt is stored in the local SQLite database and is integrated into the system prompt sent to the Large Language Model (LLM).
 
@@ -67,7 +67,49 @@ When a user interacts with the AI (e.g., by asking a question), the final prompt
 
 ---
 
-## II. Web Dashboard Architecture (`jarvis_web/`)
+## III. Core Feature Flows
+
+Jarvis has two primary modes of operation that determine how it interacts with the user and the LLM: **Listen Mode** for passive, real-time analysis, and **Ask Mode** for active, explicit questioning.
+
+### 1. Listen Mode: Real-time Transcription and Automated Summarization
+
+This mode is active whenever the "Listen" window is open. It is designed to passively observe the user's conversation and provide automated, periodic insights without requiring any direct interaction.
+
+**Data Flow:**
+1.  **Audio Capture (`sttService`)**: The service opens two parallel, real-time Speech-to-Text (STT) streams: one for the user's microphone and one for the system's audio output. This allows it to capture both sides of a conversation (e.g., "Me" and "Them").
+2.  **Live Transcription (`sttService` -> UI)**: The raw, in-progress transcriptions are sent directly to the Listen View for a live preview of what Jarvis is hearing.
+3.  **Sentence Completion (`sttService`)**: A debouncing mechanism waits for a pause in speech, then finalizes the current utterance into a complete sentence.
+4.  **Conversation Aggregation (`listenService`)**: The `listenService` receives the completed sentences and passes them to the `summaryService`.
+5.  **Periodic Analysis (`summaryService`)**: This is the core of the automated insight generation. The `summaryService` does not analyze every sentence. Instead, it triggers an analysis after a certain number of conversational turns (e.g., every 5 turns). 
+6.  **Contextual Prompting (`summaryService`)**: To provide a continuous thread of analysis, the `summaryService` includes the *previous* analysis result (main topics, key points) in its prompt to the LLM. This allows the new analysis to build on the old one.
+7.  **Insight Generation (`summaryService` -> LLM)**: The service sends the aggregated transcript and the contextual summary to the LLM, asking it to generate a structured response containing a summary, key topics, and suggested follow-up questions.
+8.  **Display Insights (UI)**: The structured response from the LLM is sent to the Listen View via an IPC event and displayed as the automated, real-time insights.
+
+### 2. Ask Mode: Context-Aware Q&A
+
+This mode is triggered by the user, either by pressing the `Cmd+Enter` shortcut or by typing directly into the "Ask" window. It is designed for direct, explicit questions that require the full context of the user's screen and recent conversation.
+
+**Data Flow:**
+1.  **User Trigger (Shortcut or Text Input)**: The user presses `Cmd+Enter` or types a query into the Ask View.
+2.  **Context Gathering (`askService`)**: When triggered, the `askService` immediately performs two actions:
+    *   **Visual Context**: It calls `captureScreenshot()` to get an up-to-date image of the user's screen.
+    *   **Audio Context**: It calls `listenService.getConversationHistory()` to retrieve the most recent transcribed sentences from the ongoing or previous listening session.
+3.  **Full Prompt Construction (`askService`)**: The service constructs a `fullPrompt` that combines multiple sources:
+    *   The user's explicit typed query (if any).
+    *   The recent conversation history.
+    *   The `personalize` prompt from settings.
+    *   The base system prompt.
+4.  **Multimodal LLM Call (`askService` -> LLM)**: The `fullPrompt` (text) and the screenshot (image) are sent together in a multimodal request to the LLM.
+5.  **Streaming Response (LLM -> UI)**: The `askService` streams the LLM's response back to the Ask View, creating the real-time "typing" effect as the answer is generated.
+
+This corrected flow ensures that the `Cmd+Enter` functionality is context-aware, using both what the user is seeing (screen) and what has just been said (audio) to provide the most relevant answer possible.
+
+
+
+
+---
+
+## IV. Web Dashboard Architecture (`jarvis_web/`)
 
 This section details the architecture of the Next.js web application, which serves as the user-facing dashboard for account management and viewing data from the local database via the Electron main process.
 

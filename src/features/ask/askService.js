@@ -3,6 +3,8 @@ const { createStreamingLLM } = require('../common/ai/factory');
 // Lazy require helper to avoid circular dependency issues
 const getWindowManager = () => require('../../window/windowManager');
 const internalBridge = require('../../bridge/internalBridge');
+const listenService = require('../listen/listenService');
+const settingsService = require('../settings/settingsService');
 
 const getWindowPool = () => {
     try {
@@ -147,10 +149,9 @@ class AskService {
     async toggleAskButton(inputScreenOnly = false) {
         const askWindow = getWindowPool()?.get('ask');
 
-        let shouldSendScreenOnly = false;
-        if (inputScreenOnly && this.state.showTextInput && askWindow && askWindow.isVisible()) {
-            shouldSendScreenOnly = true;
-            await this.sendMessage('', []);
+        if (inputScreenOnly && askWindow && askWindow.isVisible()) {
+            const conversationHistory = listenService.getConversationHistory();
+            await this.sendMessage('', conversationHistory);
             return;
         }
 
@@ -213,9 +214,10 @@ class AskService {
     /**
      * 
      * @param {string} userPrompt
+     * @param {string[]} [conversationHistory=[]]
      * @returns {Promise<{success: boolean, response?: string, error?: string}>}
      */
-    async sendMessage(userPrompt) {
+    async sendMessage(userPrompt, conversationHistory = []) {
         internalBridge.emit('window:requestVisibility', { name: 'ask', visible: true });
         this.state = {
             ...this.state,
@@ -236,10 +238,13 @@ class AskService {
         let sessionId;
 
         try {
-            console.log(`[AskService] 🤖 Processing message: ${userPrompt.substring(0, 50)}...`);
+            const conversationText = this._formatConversationForPrompt(conversationHistory);
+            const fullPrompt = userPrompt ? `User Request: ${userPrompt.trim()}\n\nConversation History:\n${conversationText}` : `Conversation History:\n${conversationText}`;
+
+            console.log(`[AskService] 🤖 Processing message: ${fullPrompt.substring(0, 100)}...`);
 
             sessionId = await sessionRepository.getOrCreateActive('ask');
-            await askRepository.addAiMessage({ sessionId, role: 'user', content: userPrompt.trim() });
+            await askRepository.addAiMessage({ sessionId, role: 'user', content: fullPrompt });
             console.log(`[AskService] DB: Saved user prompt to session ${sessionId}`);
             
             const modelInfo = await modelStateService.getCurrentModelInfo('llm');
@@ -262,7 +267,7 @@ class AskService {
                 {
                     role: 'user',
                     content: [
-                        { type: 'text', text: `User Request: ${userPrompt.trim()}` },
+                        { type: 'text', text: fullPrompt },
                     ],
                 },
             ];
@@ -310,7 +315,7 @@ class AskService {
                         { role: 'system', content: systemPrompt },
                         {
                             role: 'user',
-                            content: `User Request: ${userPrompt.trim()}`
+                            content: fullPrompt
                         }
                     ];
 
@@ -356,6 +361,7 @@ class AskService {
             return { success: false, error: error.message };
         }
     }
+
 
     /**
      * 
