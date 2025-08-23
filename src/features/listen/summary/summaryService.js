@@ -298,18 +298,15 @@ Keep all points concise and build upon previous analysis if provided.`,
     }
 
     /**
-     * Triggers analysis when conversation history reaches 5 texts.
+     * Triggers analysis when conversation history reaches 3 texts.
      */
     async triggerAnalysisIfNeeded() {
-        if (this.conversationHistory.length >= 5 && this.conversationHistory.length % 5 === 0) {
-            console.log(`Triggering analysis - ${this.conversationHistory.length} conversation texts accumulated`);
+        if (this.conversationHistory.length >= 3 && this.conversationHistory.length % 3 === 0) {
+            console.log(`Triggering silent analysis - ${this.conversationHistory.length} conversation texts accumulated`);
 
             const data = await this.makeOutlineAndRequests(this.conversationHistory);
             if (data) {
-                console.log('Sending structured data to renderer');
-                this.sendToRenderer('summary-update', data);
-                
-                // Notify callback
+                // Notify callback if it exists, but do not send to renderer
                 if (this.onAnalysisComplete) {
                     this.onAnalysisComplete(data);
                 }
@@ -325,6 +322,10 @@ Keep all points concise and build upon previous analysis if provided.`,
             history: this.analysisHistory,
             conversationLength: this.conversationHistory.length,
         };
+    }
+
+    getPreviousAnalysisResult() {
+        return this.previousAnalysisResult;
     }
 }
 

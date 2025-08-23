@@ -11,7 +11,10 @@ npm run setup
 
 `Cmd + \` : show and hide main window
 
-`Cmd + Enter` : ask AI using all your previous screen and audio
+`Cmd + Enter` : **Ask** a specific question using your screen and conversation history as context.
+
+`Cmd + '` : **Guide** me on what to say or do next based on the current context.
 
 `Cmd + Arrows` : move main window position
+
 

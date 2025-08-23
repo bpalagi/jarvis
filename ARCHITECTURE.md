@@ -69,40 +69,47 @@ When a user interacts with the AI (e.g., by asking a question), the final prompt
 
 ## III. Core Feature Flows
 
-Jarvis has two primary modes of operation that determine how it interacts with the user and the LLM: **Listen Mode** for passive, real-time analysis, and **Ask Mode** for active, explicit questioning.
+Jarvis operates on a new interaction model centered around two main user-initiated flows: **Ask** and **Guide**. These are supported by a silent, background context-gathering engine.
 
-### 1. Listen Mode: Real-time Transcription and Automated Summarization
+### 1. Background Context Engine
 
-This mode is active whenever the "Listen" window is open. It is designed to passively observe the user's conversation and provide automated, periodic insights without requiring any direct interaction.
-
-**Data Flow:**
-1.  **Audio Capture (`sttService`)**: The service opens two parallel, real-time Speech-to-Text (STT) streams: one for the user's microphone and one for the system's audio output. This allows it to capture both sides of a conversation (e.g., "Me" and "Them").
-2.  **Live Transcription (`sttService` -> UI)**: The raw, in-progress transcriptions are sent directly to the Listen View for a live preview of what Jarvis is hearing.
-3.  **Sentence Completion (`sttService`)**: A debouncing mechanism waits for a pause in speech, then finalizes the current utterance into a complete sentence.
-4.  **Conversation Aggregation (`listenService`)**: The `listenService` receives the completed sentences and passes them to the `summaryService`.
-5.  **Periodic Analysis (`summaryService`)**: This is the core of the automated insight generation. The `summaryService` does not analyze every sentence. Instead, it triggers an analysis after a certain number of conversational turns (e.g., every 5 turns). 
-6.  **Contextual Prompting (`summaryService`)**: To provide a continuous thread of analysis, the `summaryService` includes the *previous* analysis result (main topics, key points) in its prompt to the LLM. This allows the new analysis to build on the old one.
-7.  **Insight Generation (`summaryService` -> LLM)**: The service sends the aggregated transcript and the contextual summary to the LLM, asking it to generate a structured response containing a summary, key topics, and suggested follow-up questions.
-8.  **Display Insights (UI)**: The structured response from the LLM is sent to the Listen View via an IPC event and displayed as the automated, real-time insights.
-
-### 2. Ask Mode: Context-Aware Q&A
-
-This mode is triggered by the user, either by pressing the `Cmd+Enter` shortcut or by typing directly into the "Ask" window. It is designed for direct, explicit questions that require the full context of the user's screen and recent conversation.
+This system runs continuously while the application is in "Listen" mode. Its sole purpose is to gather and structure context for the user-facing features. It no longer presents automated insights directly to the user.
 
 **Data Flow:**
-1.  **User Trigger (Shortcut or Text Input)**: The user presses `Cmd+Enter` or types a query into the Ask View.
-2.  **Context Gathering (`askService`)**: When triggered, the `askService` immediately performs two actions:
-    *   **Visual Context**: It calls `captureScreenshot()` to get an up-to-date image of the user's screen.
-    *   **Audio Context**: It calls `listenService.getConversationHistory()` to retrieve the most recent transcribed sentences from the ongoing or previous listening session.
-3.  **Full Prompt Construction (`askService`)**: The service constructs a `fullPrompt` that combines multiple sources:
-    *   The user's explicit typed query (if any).
-    *   The recent conversation history.
-    *   The `personalize` prompt from settings.
-    *   The base system prompt.
-4.  **Multimodal LLM Call (`askService` -> LLM)**: The `fullPrompt` (text) and the screenshot (image) are sent together in a multimodal request to the LLM.
-5.  **Streaming Response (LLM -> UI)**: The `askService` streams the LLM's response back to the Ask View, creating the real-time "typing" effect as the answer is generated.
+1.  **Audio Capture (`sttService`)**: Captures both user microphone and system audio into two separate, real-time STT streams.
+2.  **Live Transcription (`sttService` -> UI)**: The raw transcription is still sent to the Listen window for user visibility.
+3.  **Conversation Aggregation (`listenService`)**: Completed sentences are passed to the `summaryService`.
+4.  **Silent Periodic Analysis (`summaryService`)**: The service now analyzes the conversation more frequently (e.g., every 3 turns). It generates a structured analysis of the conversation but **does not** send it to the UI. This analysis is stored in memory to be used as context for the Ask and Guide flows.
 
-This corrected flow ensures that the `Cmd+Enter` functionality is context-aware, using both what the user is seeing (screen) and what has just been said (audio) to provide the most relevant answer possible.
+### 2. On-Demand Interaction Flows
+
+These flows are triggered directly by the user via keyboard shortcuts. They use the context gathered by the background engine to provide relevant, on-demand responses.
+
+#### A. Ask Mode (`Cmd+Enter`)
+
+This flow is for when the user has a **specific question**.
+
+**Data Flow:**
+1.  **User Trigger**: The user types a query in the Ask window and/or presses `Cmd+Enter`.
+2.  **Context Gathering (`askService`)**: The `askService.sendMessage` function is called. It gathers:
+    *   **Visual Context**: A real-time screenshot.
+    *   **Audio Context**: The recent conversation history from `listenService`.
+    *   **User Query**: The text typed by the user (if any).
+3.  **LLM Call**: The context is combined into a `fullPrompt` and sent to the LLM with a prompt profile optimized for question-answering (`interview`).
+4.  **Response**: The answer is streamed to the Ask window.
+
+#### B. Guide Mode (`Cmd+'`) 
+
+This flow is for when the user wants **proactive guidance** on what to do or say next, without asking a specific question.
+
+**Data Flow:**
+1.  **User Trigger**: The user presses `Cmd+'`.
+2.  **Context Gathering (`askService`)**: The new `askService.getGuidance` function is called. It gathers:
+    *   **Visual Context**: A real-time screenshot.
+    *   **Audio Context**: The recent conversation history from `listenService`.
+    *   **Analysis Context**: The most recent silent analysis from `summaryService.getPreviousAnalysisResult()`.
+3.  **LLM Call**: The context is combined and sent to the LLM with a new, specialized prompt profile (`guidance`) that asks the AI to suggest the best next steps.
+4.  **Response**: The suggested guidance is streamed to the Ask window.
 
 
 

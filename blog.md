@@ -30,20 +30,8 @@ So now I'll show a basic flow of the app running, and my initial understanding o
 
 demo convo
 
-
-
-
-
-
-
-
-
-
-
 Gemini has not only stripped down the service and ramped me up on the structure
-* has resolved issues with conversation history, improved functionality of how to provide guidance
-    * looking to adjust summary service to provide guidance in real time, rather than needing to be prompted for insights or followup
-    * now I see it requires five dialouge turns, and does not include screen input... how can we improve on that simple approach...
+* has resolved issues with conversation history, created the ask/guide rather than summary/followup workflow
 
 
 
@@ -53,6 +41,38 @@ Gemini has not only stripped down the service and ramped me up on the structure
 
 
 
+
+
+run the app, see how we're doing, commit
+* what's the ask window compared to cmd+enter
+* where is the prompt still being told about an interview setting?
+* how does the app determine "you" vs "them" in conversation? Is it just mic audio vs system audio
+
+Can update the shortcutService to assume Mac, no need to accept ctrl
+* still looking to strip this down to the minimum where I can.
+
+
+Would like change the conversation history tab on front end to be a live, interactive dashboard including transcription, summary, ask and guide functionality
+
+
+
+
+Can still better understand js, ts, next, express, etc.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Now need to actually try utilizing the app to determine where to go next.
 
 ask service, listen service, stt service, summary service...
 

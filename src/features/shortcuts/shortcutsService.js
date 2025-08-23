@@ -66,6 +66,7 @@ class ShortcutsService {
             toggleVisibility: isMac ? 'Cmd+\\' : 'Ctrl+\\',
             toggleClickThrough: isMac ? 'Cmd+M' : 'Ctrl+M',
             nextStep: isMac ? 'Cmd+Enter' : 'Ctrl+Enter',
+            getGuidance: isMac ? 'Cmd+\'': 'Ctrl+\'',
             manualScreenshot: isMac ? 'Cmd+Shift+S' : 'Ctrl+Shift+S',
             previousResponse: isMac ? 'Cmd+[' : 'Ctrl+[',
             nextResponse: isMac ? 'Cmd+]' : 'Ctrl+]',
@@ -212,6 +213,9 @@ class ShortcutsService {
                     break;
                 case 'nextStep':
                     callback = () => askService.toggleAskButton(true);
+                    break;
+                case 'getGuidance':
+                    callback = () => askService.getGuidance();
                     break;
                 case 'scrollUp':
                     callback = () => {

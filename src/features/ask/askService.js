@@ -5,6 +5,7 @@ const getWindowManager = () => require('../../window/windowManager');
 const internalBridge = require('../../bridge/internalBridge');
 const listenService = require('../listen/listenService');
 const settingsService = require('../settings/settingsService');
+const summaryService = require('../listen/summary/summaryService');
 
 const getWindowPool = () => {
     try {
@@ -176,6 +177,22 @@ class AskService {
         }
     }
 
+    async getGuidance() {
+        const conversationHistory = listenService.getConversationHistory();
+        const previousAnalysis = summaryService.getPreviousAnalysisResult();
+        
+        let contextText = this._formatConversationForPrompt(conversationHistory);
+        if (previousAnalysis) {
+            const analysisText = `Previous Analysis:\n- Main Topic: ${previousAnalysis.topic.header}\n- Key Points: ${previousAnalysis.summary.join(', ')}`;
+            contextText = `${analysisText}\n\nRecent Conversation:\n${contextText}`;
+        }
+
+        const guidancePrompt = `Based on the context below, what should the user know or say next?`;
+        const fullPrompt = `${guidancePrompt}\n\nContext:\n${contextText}`;
+
+        await this._executeLLMStream(fullPrompt, 'guidance');
+    }
+
     async closeAskWindow () {
             if (this.abortController) {
                 this.abortController.abort('Window closed by user');
@@ -198,12 +215,6 @@ class AskService {
         }
     
 
-    /**
-     * 
-     * @param {string[]} conversationTexts
-     * @returns {string}
-     * @private
-     */
     _formatConversationForPrompt(conversationTexts) {
         if (!conversationTexts || conversationTexts.length === 0) {
             return 'No conversation history available.';
@@ -211,19 +222,22 @@ class AskService {
         return conversationTexts.slice(-30).join('\n');
     }
 
-    /**
-     * 
-     * @param {string} userPrompt
-     * @param {string[]} [conversationHistory=[]]
-     * @returns {Promise<{success: boolean, response?: string, error?: string}>}
-     */
     async sendMessage(userPrompt, conversationHistory = []) {
+        const conversationText = this._formatConversationForPrompt(conversationHistory);
+        const fullPrompt = userPrompt 
+            ? `User Request: ${userPrompt.trim()}\n\nConversation History:\n${conversationText}` 
+            : `Conversation History:\n${conversationText}`;
+
+        await this._executeLLMStream(fullPrompt, 'interview');
+    }
+
+    async _executeLLMStream(fullPrompt, promptType) {
         internalBridge.emit('window:requestVisibility', { name: 'ask', visible: true });
         this.state = {
             ...this.state,
             isLoading: true,
             isStreaming: false,
-            currentQuestion: userPrompt,
+            currentQuestion: fullPrompt,
             currentResponse: '',
             showTextInput: false,
         };
@@ -238,10 +252,7 @@ class AskService {
         let sessionId;
 
         try {
-            const conversationText = this._formatConversationForPrompt(conversationHistory);
-            const fullPrompt = userPrompt ? `User Request: ${userPrompt.trim()}\n\nConversation History:\n${conversationText}` : `Conversation History:\n${conversationText}`;
-
-            console.log(`[AskService] 🤖 Processing message: ${fullPrompt.substring(0, 100)}...`);
+            console.log(`[AskService] 🤖 Processing ${promptType} prompt: ${fullPrompt.substring(0, 100)}...`);
 
             sessionId = await sessionRepository.getOrCreateActive('ask');
             await askRepository.addAiMessage({ sessionId, role: 'user', content: fullPrompt });
@@ -256,11 +267,10 @@ class AskService {
             const screenshotResult = await captureScreenshot({ quality: 'medium' });
             const screenshotBase64 = screenshotResult.success ? screenshotResult.base64 : null;
 
-            // Fetch the personalize prompt
             const personalizePromptData = await settingsService.getPersonalizePrompt();
             const personalizePrompt = personalizePromptData ? personalizePromptData.prompt : '';
 
-            const systemPrompt = getSystemPrompt('interview', personalizePrompt, false);
+            const systemPrompt = getSystemPrompt(promptType, personalizePrompt, false);
 
             const messages = [
                 { role: 'system', content: systemPrompt },
@@ -299,24 +309,19 @@ class AskService {
                 const reader = response.body.getReader();
                 signal.addEventListener('abort', () => {
                     console.log(`[AskService] Aborting stream reader. Reason: ${signal.reason}`);
-                    reader.cancel(signal.reason).catch(() => { /* 이미 취소된 경우의 오류는 무시 */ });
+                    reader.cancel(signal.reason).catch(() => { /* Already cancelled */ });
                 });
 
                 await this._processStream(reader, askWin, sessionId, signal);
                 return { success: true };
 
             } catch (multimodalError) {
-                // 멀티모달 요청이 실패했고 스크린샷이 포함되어 있다면 텍스트만으로 재시도
                 if (screenshotBase64 && this._isMultimodalError(multimodalError)) {
                     console.log(`[AskService] Multimodal request failed, retrying with text-only: ${multimodalError.message}`);
                     
-                    // 텍스트만으로 메시지 재구성
                     const textOnlyMessages = [
                         { role: 'system', content: systemPrompt },
-                        {
-                            role: 'user',
-                            content: fullPrompt
-                        }
+                        { role: 'user', content: fullPrompt }
                     ];
 
                     const fallbackResponse = await streamingLLM.streamChat(textOnlyMessages);
@@ -337,7 +342,6 @@ class AskService {
                     await this._processStream(fallbackReader, askWin, sessionId, signal);
                     return { success: true };
                 } else {
-                    // 다른 종류의 에러이거나 스크린샷이 없었다면 그대로 throw
                     throw multimodalError;
                 }
             }
@@ -362,16 +366,6 @@ class AskService {
         }
     }
 
-
-    /**
-     * 
-     * @param {ReadableStreamDefaultReader} reader
-     * @param {BrowserWindow} askWin
-     * @param {number} sessionId 
-     * @param {AbortSignal} signal
-     * @returns {Promise<void>}
-     * @private
-     */
     async _processStream(reader, askWin, sessionId, signal) {
         const decoder = new TextDecoder();
         let fullResponse = '';
@@ -430,10 +424,6 @@ class AskService {
         }
     }
 
-    /**
-     * 멀티모달 관련 에러인지 판단
-     * @private
-     */
     _isMultimodalError(error) {
         const errorMessage = error.message?.toLowerCase() || '';
         return (
