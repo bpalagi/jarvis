@@ -41,10 +41,21 @@ Gemini has not only stripped down the service and ramped me up on the structure
 
 
 
-summary and followup context still logged... just not displayed.
+where was the interview prompt that was switched out for jarvis prompt?
+* is this in the databse, or what is the prompt now?
+
+
+I want proactice responses to the conversation to be properly dispalyed in the apps insights UI 
+
+
 
 * where is the prompt still being told about an interview setting?
 * how does the app determine "you" vs "them" in conversation? Is it just mic audio vs system audio
+
+
+
+
+
 * Can update the shortcutService to assume Mac, no need to accept ctrl. Translate any comments that are not in English
     * still looking to strip this down to the minimum where I can.
 * clean up the logging of unnessecary events like the mouse hovering over the non-web app UI

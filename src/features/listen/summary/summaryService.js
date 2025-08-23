@@ -77,14 +77,12 @@ class SummaryService {
 
         const recentConversation = this.formatConversationForPrompt(conversationTexts, maxTurns);
 
-        // 이전 분석 결과를 프롬프트에 포함
         let contextualPrompt = '';
         if (this.previousAnalysisResult) {
             contextualPrompt = `
 Previous Analysis Context:
 - Main Topic: ${this.previousAnalysisResult.topic.header}
-- Key Points: ${this.previousAnalysisResult.summary.slice(0, 3).join(', ')}
-- Last Actions: ${this.previousAnalysisResult.actions.slice(0, 2).join(', ')}
+- Key Points: ${this.previousAnalysisResult.summary.join(', ')}
 
 Please build upon this context while analyzing the new conversation segments.
 `;
@@ -113,25 +111,15 @@ Please build upon this context while analyzing the new conversation segments.
                     role: 'user',
                     content: `${contextualPrompt}
 
-Analyze the conversation and provide a structured summary. Format your response as follows:
+Analyze the conversation and provide a concise summary of the main points. Format your response as follows:
 
-**Summary Overview**
-- Main discussion point with context
+**Topic:** [A short, descriptive topic for the conversation]
 
-**Key Topic: [Topic Name]**
-- First key insight
-- Second key insight
-- Third key insight
+- First summary point.
+- Second summary point.
+- Third summary point.
 
-**Extended Explanation**
-Provide 2-3 sentences explaining the context and implications.
-
-**Suggested Questions**
-1. First follow-up question?
-2. Second follow-up question?
-3. Third follow-up question?
-
-Keep all points concise and build upon previous analysis if provided.`,
+Keep the topic and summary points concise.`,
                 },
             ];
 
@@ -141,7 +129,7 @@ Keep all points concise and build upon previous analysis if provided.`,
                 apiKey: modelInfo.apiKey,
                 model: modelInfo.model,
                 temperature: 0.7,
-                maxTokens: 1024,
+                maxTokens: 512, // Reduced max tokens for a more focused summary
             });
 
             const completion = await llm.chat(messages);
@@ -165,7 +153,6 @@ Keep all points concise and build upon previous analysis if provided.`,
                 }
             }
 
-            // 분석 결과 저장
             this.previousAnalysisResult = structuredData;
             this.analysisHistory.push({
                 timestamp: Date.now(),
@@ -180,7 +167,7 @@ Keep all points concise and build upon previous analysis if provided.`,
             return structuredData;
         } catch (error) {
             console.error('❌ Error during analysis generation:', error.message);
-            return this.previousAnalysisResult; // 에러 시 이전 결과 반환
+            return this.previousAnalysisResult;
         }
     }
 
@@ -189,111 +176,41 @@ Keep all points concise and build upon previous analysis if provided.`,
             summary: [],
             topic: { header: '', bullets: [] },
             actions: [],
-            followUps: ['✉️ Draft a follow-up email', '✅ Generate action items', '📝 Show summary'],
+            followUps: [],
         };
-
-        // 이전 결과가 있으면 기본값으로 사용
-        if (previousResult) {
-            structuredData.topic.header = previousResult.topic.header;
-            structuredData.summary = [...previousResult.summary];
-        }
 
         try {
             const lines = responseText.split('\n');
             let currentSection = '';
-            let isCapturingTopic = false;
-            let topicName = '';
 
             for (const line of lines) {
                 const trimmedLine = line.trim();
 
-                // 섹션 헤더 감지
-                if (trimmedLine.startsWith('**Summary Overview**')) {
-                    currentSection = 'summary-overview';
-                    continue;
-                } else if (trimmedLine.startsWith('**Key Topic:')) {
+                if (trimmedLine.startsWith('**Topic:**')) {
                     currentSection = 'topic';
-                    isCapturingTopic = true;
-                    topicName = trimmedLine.match(/\*\*Key Topic: (.+?)\*\*/)?.[1] || '';
-                    if (topicName) {
-                        structuredData.topic.header = topicName + ':';
-                    }
+                    structuredData.topic.header = trimmedLine.replace('**Topic:**', '').trim();
                     continue;
-                } else if (trimmedLine.startsWith('**Extended Explanation**')) {
-                    currentSection = 'explanation';
-                    continue;
-                } else if (trimmedLine.startsWith('**Suggested Questions**')) {
-                    currentSection = 'questions';
-                    continue;
-                }
-
-                // 컨텐츠 파싱
-                if (trimmedLine.startsWith('-') && currentSection === 'summary-overview') {
+                } else if (trimmedLine.startsWith('-')) {
                     const summaryPoint = trimmedLine.substring(1).trim();
-                    if (summaryPoint && !structuredData.summary.includes(summaryPoint)) {
-                        // 기존 summary 업데이트 (최대 5개 유지)
-                        structuredData.summary.unshift(summaryPoint);
-                        if (structuredData.summary.length > 5) {
-                            structuredData.summary.pop();
-                        }
-                    }
-                } else if (trimmedLine.startsWith('-') && currentSection === 'topic') {
-                    const bullet = trimmedLine.substring(1).trim();
-                    if (bullet && structuredData.topic.bullets.length < 3) {
-                        structuredData.topic.bullets.push(bullet);
-                    }
-                } else if (currentSection === 'explanation' && trimmedLine) {
-                    // explanation을 topic bullets에 추가 (문장 단위로)
-                    const sentences = trimmedLine
-                        .split(/\.\s+/)
-                        .filter(s => s.trim().length > 0)
-                        .map(s => s.trim() + (s.endsWith('.') ? '' : '.'));
-
-                    sentences.forEach(sentence => {
-                        if (structuredData.topic.bullets.length < 3 && !structuredData.topic.bullets.includes(sentence)) {
-                            structuredData.topic.bullets.push(sentence);
-                        }
-                    });
-                } else if (trimmedLine.match(/^\d+\./) && currentSection === 'questions') {
-                    const question = trimmedLine.replace(/^\d+\.\s*/, '').trim();
-                    if (question && question.includes('?')) {
-                        structuredData.actions.push(`❓ ${question}`);
+                    if (summaryPoint) {
+                        structuredData.summary.push(summaryPoint);
                     }
                 }
             }
 
-            // 기본 액션 추가
-            const defaultActions = ['✨ What should I say next?', '💬 Suggest follow-up questions'];
-            defaultActions.forEach(action => {
-                if (!structuredData.actions.includes(action)) {
-                    structuredData.actions.push(action);
-                }
-            });
-
-            // 액션 개수 제한
-            structuredData.actions = structuredData.actions.slice(0, 5);
-
-            // 유효성 검증 및 이전 데이터 병합
             if (structuredData.summary.length === 0 && previousResult) {
                 structuredData.summary = previousResult.summary;
             }
-            if (structuredData.topic.bullets.length === 0 && previousResult) {
-                structuredData.topic.bullets = previousResult.topic.bullets;
+            if (!structuredData.topic.header && previousResult) {
+                structuredData.topic.header = previousResult.topic.header;
             }
+
         } catch (error) {
-            console.error('❌ Error parsing response text:', error);
-            // 에러 시 이전 결과 반환
-            return (
-                previousResult || {
-                    summary: [],
-                    topic: { header: 'Analysis in progress', bullets: [] },
-                    actions: ['✨ What should I say next?', '💬 Suggest follow-up questions'],
-                    followUps: ['✉️ Draft a follow-up email', '✅ Generate action items', '📝 Show summary'],
-                }
-            );
+            console.error('❌ Error parsing summary response text:', error);
+            return previousResult || structuredData;
         }
 
-        console.log('📊 Final structured data:', JSON.stringify(structuredData, null, 2));
+        console.log('📊 Final structured summary data:', JSON.stringify(structuredData, null, 2));
         return structuredData;
     }
 

@@ -228,7 +228,7 @@ class AskService {
             ? `User Request: ${userPrompt.trim()}\n\nConversation History:\n${conversationText}` 
             : `Conversation History:\n${conversationText}`;
 
-        await this._executeLLMStream(fullPrompt, 'interview');
+        await this._executeLLMStream(fullPrompt, 'jarvis');
     }
 
     async _executeLLMStream(fullPrompt, promptType) {
