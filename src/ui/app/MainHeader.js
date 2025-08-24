@@ -109,23 +109,7 @@ export class MainHeader extends LitElement {
             background: rgba(255, 20, 20, 0.6);
         }
 
-        .listen-button.done {
-            background-color: rgba(255, 255, 255, 0.6);
-            transition: background-color 0.15s ease;
-        }
-
-        .listen-button.done .action-text-content {
-            color: black;
-        }
         
-        .listen-button.done .listen-icon svg rect,
-        .listen-button.done .listen-icon svg path {
-            fill: black;
-        }
-
-        .listen-button.done:hover {
-            background-color: #f0f0f0;
-        }
 
         .listen-button:hover::before {
             background: rgba(255, 255, 255, 0.18);
@@ -156,9 +140,7 @@ export class MainHeader extends LitElement {
             pointer-events: none;
         }
 
-        .listen-button.done::after {
-            display: none;
-        }
+        
 
         .loading-dots {
             display: flex;
@@ -314,7 +296,6 @@ export class MainHeader extends LitElement {
         switch (status) {
             case 'beforeSession': return 'Listen';
             case 'inSession'   : return 'Stop';
-            case 'afterSession': return 'Done';
             default            : return 'Listen';
         }
     }
@@ -430,8 +411,7 @@ export class MainHeader extends LitElement {
                 if (success) {
                     this.listenSessionStatus = ({
                         beforeSession: 'inSession',
-                        inSession: 'afterSession',
-                        afterSession: 'beforeSession',
+                        inSession: 'beforeSession', // Direct transition
                     })[this.listenSessionStatus] || 'beforeSession';
                 } else {
                     this.listenSessionStatus = 'beforeSession';
@@ -556,9 +536,8 @@ export class MainHeader extends LitElement {
     
         const buttonClasses = {
             active: listenButtonText === 'Stop',
-            done: listenButtonText === 'Done',
         };
-        const showStopIcon = listenButtonText === 'Stop' || listenButtonText === 'Done';
+        const showStopIcon = listenButtonText === 'Stop';
 
         return html`
             <div class="header" @mousedown=${this.handleMouseDown}>

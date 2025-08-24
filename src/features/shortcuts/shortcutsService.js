@@ -2,6 +2,7 @@ const { globalShortcut, screen } = require('electron');
 const shortcutsRepository = require('./repositories');
 const internalBridge = require('../../bridge/internalBridge');
 const askService = require('../ask/askService');
+const listenService = require('../listen/listenService');
 
 
 class ShortcutsService {
@@ -71,6 +72,7 @@ class ShortcutsService {
             nextResponse: 'Cmd+]' ,
             scrollUp: 'Cmd+Shift+Up',
             scrollDown: 'Cmd+Shift+Down',
+            toggleListenSession: 'Cmd+L', // Added this line
         };
     }
 
@@ -206,6 +208,11 @@ class ShortcutsService {
             switch(action) {
                 case 'toggleVisibility':
                     callback = () => this.toggleAllWindowsVisibility();
+                    break;
+                case 'toggleListenSession': // Added this case
+                    callback = async () => {
+                        await listenService.toggleListenSessionFromShortcut();
+                    };
                     break;
                 case 'nextStep':
                     callback = () => askService.toggleAskButton(true);

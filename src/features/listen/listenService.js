@@ -77,12 +77,6 @@ class ListenService {
                     }
                     break;
         
-                case 'Done':
-                    console.log('[ListenService] changeSession to "Done"');
-                    internalBridge.emit('window:requestVisibility', { name: 'listen', visible: false });
-                    listenWindow.webContents.send('session-state-changed', { isActive: false });
-                    break;
-        
                 default:
                     throw new Error(`[ListenService] unknown listenButtonText: ${listenButtonText}`);
             }
@@ -231,6 +225,7 @@ class ListenService {
     async closeSession() {
         try {
             this.sendToRenderer('change-listen-capture-state', { status: "stop" });
+            internalBridge.emit('window:requestVisibility', { name: 'listen', visible: false }); // Added this line
             // Close STT sessions
             await this.sttService.closeSessions();
 
@@ -265,6 +260,25 @@ class ListenService {
 
     getConversationHistory() {
         return this.summaryService.getConversationHistory();
+    }
+
+    async toggleListenSessionFromShortcut() {
+        const { windowPool } = require('../../window/windowManager');
+        const header = windowPool.get('header');
+        try {
+            if (this.sttService.isSessionActive()) {
+                console.log('[ListenService] Shortcut: Session active, stopping.');
+                await this.closeSession();
+            } else {
+                console.log('[ListenService] Shortcut: Session inactive, starting.');
+                internalBridge.emit('window:requestVisibility', { name: 'listen', visible: true }); // Ensure window is visible when starting
+                await this.initializeSession();
+            }
+            header.webContents.send('listen:changeSessionResult', { success: true });
+        } catch (error) {
+            console.error('[ListenService] Shortcut toggle failed:', error);
+            header.webContents.send('listen:changeSessionResult', { success: false, error: error.message });
+        }
     }
 
     _createHandler(asyncFn, successMessage, errorMessage) {
