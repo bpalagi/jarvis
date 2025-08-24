@@ -54,11 +54,8 @@ Gemini has not only stripped down the service and ramped me up on the structure
 
 
 
-now go try cluely ( i think there's a free trial )
-* see what they've got making it next level??
-
-
-
+Try Cmd+L for Listen toggle, and separate Done/End function
+* ask to understand the scope of this work first
 
 
 

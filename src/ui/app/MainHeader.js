@@ -564,6 +564,7 @@ export class MainHeader extends LitElement {
             <div class="header" @mousedown=${this.handleMouseDown}>
                 <button 
                     class="listen-button ${Object.keys(buttonClasses).filter(k => buttonClasses[k]).join(' ')}"
+                    @mousedown=${(e) => e.stopPropagation()}
                     @click=${this._handleListenClick}
                     ?disabled=${this.isTogglingSession}
                 >
@@ -595,7 +596,7 @@ export class MainHeader extends LitElement {
                         `}
                 </button>
 
-                <div class="header-actions ask-action" @click=${() => this._handleAskClick()}>
+                <div class="header-actions ask-action" @mousedown=${(e) => e.stopPropagation()} @click=${() => this._handleAskClick()}>
                     <div class="action-text">
                         <div class="action-text-content">Ask</div>
                     </div>
@@ -604,7 +605,7 @@ export class MainHeader extends LitElement {
                     </div>
                 </div>
 
-                <div class="header-actions" @click=${() => this._handleToggleAllWindowsVisibility()}>
+                <div class="header-actions" @mousedown=${(e) => e.stopPropagation()} @click=${() => this._handleToggleAllWindowsVisibility()}>
                     <div class="action-text">
                         <div class="action-text-content">Show/Hide</div>
                     </div>
@@ -615,6 +616,7 @@ export class MainHeader extends LitElement {
 
                 <button 
                     class="settings-button"
+                    @mousedown=${(e) => e.stopPropagation()}
                     @mouseenter=${(e) => this.showSettingsWindow(e.currentTarget)}
                     @mouseleave=${() => this.hideSettingsWindow()}
                 >
