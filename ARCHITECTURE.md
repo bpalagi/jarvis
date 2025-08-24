@@ -73,13 +73,17 @@ Jarvis operates on a new interaction model centered around two main user-initiat
 
 ### 1. Background Context Engine
 
-This system runs continuously while the application is in "Listen" mode. Its sole purpose is to gather and structure context for the user-facing features. It no longer presents automated insights directly to the user.
+The background context engine is the foundation of Jarvis's contextual awareness. The user can toggle this engine on and off using the "Listen" button in the UI or the `Cmd+L` shortcut. When active, the application enters "Listen" mode.
+
+This engine has two primary responsibilities:
+1.  **Silent Context Gathering**: It captures audio and screen context to provide real-time information for the on-demand Ask and Guide flows.
+2.  **Live Analysis**: It periodically analyzes the conversation to generate insights. These insights are not presented in an interruptive manner (which replaces the old "afterSession" state), but are displayed passively in the "Live Insights" tab for the user to review at their convenience.
 
 **Data Flow:**
 1.  **Audio Capture (`sttService`)**: Captures both user microphone and system audio into two separate, real-time STT streams.
 2.  **Live Transcription (`sttService` -> UI)**: The raw transcription is still sent to the Listen window for user visibility.
 3.  **Conversation Aggregation (`listenService`)**: Completed sentences are passed to the `summaryService`.
-4.  **Silent Periodic Analysis (`summaryService`)**: The service now analyzes the conversation more frequently (e.g., every 3 turns). It generates a structured analysis of the conversation but **does not** send it to the UI. This analysis is stored in memory to be used as context for the Ask and Guide flows.
+4.  **Periodic Analysis (`summaryService`)**: The service analyzes the conversation periodically (e.g., every 3 turns). It generates a structured analysis of the conversation. This analysis is used for two purposes: it is stored in memory as context for the Ask and Guide flows, and it is sent to the UI to populate the "Live Insights" tab.
 
 ### 2. On-Demand Interaction Flows
 

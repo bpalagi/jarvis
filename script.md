@@ -35,58 +35,6 @@ Gemini has not only stripped down the service and ramped me up on the structure
 * rebuilt how the prompt flow operates in real time, rebuilt the web ui, etc.
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-Try Cmd+L for Listen toggle, and separate Done/End function
-* ask to understand the scope of this work first
-
-
-
-dial in the live hidden display for Ask, Guidance mode without the web-ui
-* check that the shortcuts work
-* clean up the little ... drop down
-
-
-let's try improving the web-ui
-* would like to change the conversation history tab on front end to be a live, interactive dashboard including transcription, summary, ask and guide functionality
-* search doesn't seem to work yet, can we implement this as bringing us to the most relevant location within a conversation history?
-
-
-implement iron man styling, but keep it clean and classy, have some taste here.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 Now need to actually try utilizing the app to determine where to go next.
 
 ask service, listen service, stt service, summary service...
@@ -104,6 +52,21 @@ Stay tuned for next time where I really put Gemini CLI to the test with adding n
 * man is it fun to just let the AI agent run without intervention, but as of now I feel understanding more than less of what the agent is changing allows for best results
     * what I mean is: read the output even if you're accepting all the changes
     * vibe with the code, don't just let the code vibe if you know what I mean... pump some edm and lock in
+
+
+dial in the live hidden display for Ask, Guidance mode without the web-ui
+* check that the shortcuts work
+* clean up the little ... drop down
+
+
+let's try improving the web-ui
+* would like to change the conversation history tab on front end to be a live, interactive dashboard including transcription, summary, ask and guide functionality
+* search doesn't seem to work yet, can we implement this as bringing us to the most relevant location within a conversation history?
+
+
+implement iron man styling, but keep it clean and classy, have some taste here.
+
+
 
 
 Wrapping up now with what my goal is with content is to practice articulating technical thoughts, both written and spoken. I definitely think it would be fun to grow an audience but know the reality is that's better to think of as a side effect rather than main goal with content. Podcasters always say that by posting content you are forced to analyze your work in a deeper way than even like a public speaking course, there's the inherent focus of dialing something in to where you believe it's worth posting. Well, this applies at least for longer form... I also just want something to shitpost on twitter about. follow along @TangLLC
