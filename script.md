@@ -1,72 +1,73 @@
-# Corporate Kid Tries to Build FR
+# From Corporate Coder to AI Tinkerer: Building My Second Brain
 
-So I'm what at this point I'd describe as a classically trained corporate software engineer,
-* I studied Computer Engineering at the University of Illinois, and have spent the first couple years of my career writing Java SpringBoot API's at a Fortune 500.
+**(Intro Music with on-screen title: Corporate Kid Tries to Build a Second Brain)**
 
-I've gotten frustrated with the slow moving, fairly boring work of maintaining a PostgresDB of emails.
-* the pay is nice, I've got what I've always strived for, but I'm looking for more...
-* I see there's still so much more to what can be done in software on Twitter
+**You (to camera):**
 
-I'm also like addicted to YouTube and X dot com, the everything app
-* so this is my attempt to weave these pieces together and explore areas of tech while I feel bottlenecked by beauracracy
+So, I'm what you might call a "classically trained" corporate software engineer. I went to a great school, got a degree in Computer Engineering, and for the last few years, I've been writing Java code for a Fortune 500 company.
 
+And honestly? I'm bored.
 
-## Let's get into it now, working on Jarvis
+The pay is great, I have the job I always thought I wanted, but I can't shake the feeling that I'm stuck in first gear. I see what's happening on the cutting edge of software, and I want in.
 
-So something I don't feel I'm able to play with as much as I'd like in the Corporate setting is the newest AI coding tools.
-* with enterprise data regulations, I'm personally limited to utilizing primarily the GitHub Copilot assistant for code generation.
+This is my attempt to break out of the corporate bubble, to get my hands dirty with the tech that's shaping our future, and to document the entire journey.
 
-Today I'll go over my experience tinkering with the freely available Gemini CLI on a project that I forked from Tech Twitter. I haven't exactly worked on Open Source Software before but hit me up if you're interested in contributing or trying it out
+---
 
-Essentially this app is trying to be an AI assistant that is more than a chatbot, listening to your audio, taking screenshots and providing insight in real time.
+## Meet Jarvis: More Than a Chatbot
 
-If you're a freak about Privacy, run it with local Whisper and LLM Models, this is just me exploring how we can utilizie these language models that are supposed to revolutionize the world
+**You (Voice-over with screen recording of the app):**
 
-So far I've utilized Gemini to get me up to speed on the project, I essentially walked into a big codebase and am just trying to get a general flow of what's going on and what the structure is
+This is Jarvis. It's an open-source project I forked, and it's my playground for exploring the world of AI.
 
-Gemini has stripped the app down from attempting to be a YC product to just what I need it for, and helped me build out documentation and my general understanding of what's going on.
+The vision is simple: an AI assistant that's more than just a text-in, text-out chatbot. Jarvis is designed to listen to your conversations, see what you're seeing on your screen, and provide real-time insights. Think of it as a digital extension of your own mind.
 
-So now I'll show a basic flow of the app running, and my initial understanding of the technical details.
+And for all you privacy advocates out there, you can run it completely locally with your own models. This is all about exploration.
 
-demo convo
+---
 
-Gemini has not only stripped down the service and ramped me up on the structure
-* has resolved issues with conversation history, created the ask/guide rather than summary/followup workflow
-* rebuilt how the prompt flow operates in real time, rebuilt the web ui, etc.
+## How I'm Building This (with a little help from my AI friend)
 
+**You (to camera):**
 
-Now need to actually try utilizing the app to determine where to go next.
+Now, I'm not just building an AI app, I'm building it *with* AI.
 
-ask service, listen service, stt service, summary service...
+I've been using the Gemini CLI to help me navigate this project. I jumped into a pretty complex codebase without much prior experience in this stack. Gemini has been my guide, helping me understand the architecture, stripping down the parts I don't need, and even refactoring the code.
 
-so that's a basic overview, but as always, if you want to truly understand what's going on: read the source code!
-* it's just a few hundred lines of typescript and shit... I've barely written typescript, but AI is here to walk you through it
+It helped me fix conversation history, redesign the prompt flow, and even rebuild the web UI.
 
+Let me show you how it works.
 
-Stay tuned for next time where I really put Gemini CLI to the test with adding new functionality, as well as build up my neovim setup...
-* I've already had good success as previously the transcibed audio wasn't being included in the Cmd+Enter functionality
-    * simply tinkering right now... no test cases written, no customer feedback, etc.
-* I'm going to cover how to best mix neovim functionality like ripgrep on top of gemini functionality for finding how to edit source code as fast as possible
-    * especially when you have little knowledge of the code base... AI tools are going to continue improving rapidly, but we I see engineers being in the loop still
-    * at least for quite some time, so at least for now it's not just about the tools building software, but engineers ability to quickly validate generated software.
-* man is it fun to just let the AI agent run without intervention, but as of now I feel understanding more than less of what the agent is changing allows for best results
-    * what I mean is: read the output even if you're accepting all the changes
-    * vibe with the code, don't just let the code vibe if you know what I mean... pump some edm and lock in
+**(DEMO - 1-2 minutes)**
 
+*   Show a basic flow of the app running.
+*   Talk through a simple "ask" and "guide" interaction.
+*   Briefly show the code and explain the `ask`, `listen`, `stt`, and `summary` services.
 
-dial in the live hidden display for Ask, Guidance mode without the web-ui
-* check that the shortcuts work
-* clean up the little ... drop down
+---
 
+## What's Next?
 
-let's try improving the web-ui
-* would like to change the conversation history tab on front end to be a live, interactive dashboard including transcription, summary, ask and guide functionality
-* search doesn't seem to work yet, can we implement this as bringing us to the most relevant location within a conversation history?
+**You (to camera):**
 
+So that's a quick look at Jarvis and how I'm building it. But this is just the beginning.
 
-implement iron man styling, but keep it clean and classy, have some taste here.
+My next step is to really start *using* the app day-to-day to figure out what's useful and what's not. I want to move beyond the "cheating on interviews" framing and explore how this can be a legitimate tool for thought.
 
+I'll be dialing in the UI, implementing a real-time interactive dashboard, and maybe even giving it a bit of an "Iron Man" aesthetic (but tasteful, of course).
 
+And I'm going to be documenting everything, right here on this channel. We'll dive deep into the code, I'll show you how I'm using Gemini and other AI tools in my workflow, and we'll see if we can't build something truly special.
 
+---
 
-Wrapping up now with what my goal is with content is to practice articulating technical thoughts, both written and spoken. I definitely think it would be fun to grow an audience but know the reality is that's better to think of as a side effect rather than main goal with content. Podcasters always say that by posting content you are forced to analyze your work in a deeper way than even like a public speaking course, there's the inherent focus of dialing something in to where you believe it's worth posting. Well, this applies at least for longer form... I also just want something to shitpost on twitter about. follow along @TangLLC
+## Join the Journey
+
+**You (to camera):**
+
+My goal here is to get better at articulating my technical thoughts, and to connect with other people who are excited about this stuff.
+
+If you want to follow along, subscribe to the channel and follow me on X at @TangLLC. And if you're a developer, the project is open source. I'd love for you to check it out.
+
+Thanks for watching. Now, let's get back to building.
+
+**(Outro Music)**
