@@ -153,6 +153,16 @@ function SessionDetailsContent() {
                         }
                     </Section>
                 )}
+
+                {sessionDetails.session.notes && (
+                    <Section title="Notes">
+                        <div className="bg-gray-50 rounded-lg p-4 prose prose-sm max-w-none">
+                            <pre className="whitespace-pre-wrap font-sans text-sm text-gray-700">
+                                {sessionDetails.session.notes}
+                            </pre>
+                        </div>
+                    </Section>
+                )}
                 
                 {sessionDetails.transcripts && sessionDetails.transcripts.length > 0 && (
                     <Section title="Listen: Transcript">
