@@ -110,27 +110,122 @@ export default function ActivityPage() {
 
   const renderMarkdown = (markdown: string) => {
     // Simple markdown rendering for the preview
-    return markdown.split('\n').map((line, i) => {
-      if (line.startsWith('# ')) {
-        return <h1 key={i} className="text-2xl font-bold mt-4 mb-2">{line.substring(2)}</h1>;
-      } else if (line.startsWith('## ')) {
-        return <h2 key={i} className="text-xl font-semibold mt-3 mb-2">{line.substring(3)}</h2>;
-      } else if (line.startsWith('### ')) {
-        return <h3 key={i} className="text-lg font-medium mt-2 mb-1">{line.substring(4)}</h3>;
-      } else if (line.startsWith('- [ ] ')) {
-        return <div key={i} className="flex items-start ml-4"><input type="checkbox" disabled className="mt-1 mr-2" /><span>{line.substring(6)}</span></div>;
-      } else if (line.startsWith('- ')) {
-        return <li key={i} className="ml-4">{line.substring(2)}</li>;
-      } else if (line.startsWith('> ')) {
-        return <blockquote key={i} className="border-l-4 border-gray-300 pl-4 italic text-gray-600 my-2">{line.substring(2)}</blockquote>;
-      } else if (line.startsWith('**') && line.endsWith('**')) {
-        const match = line.match(/\*\*(.*?):\*\* (.*)/);
+    const lines = markdown.split('\n');
+    const elements: JSX.Element[] = [];
+    let inList = false;
+    let inOrderedList = false;
+    
+    lines.forEach((line, i) => {
+      const trimmedLine = line.trim();
+      
+      // Headers
+      if (trimmedLine.startsWith('# ')) {
+        if (inList || inOrderedList) {
+          inList = false;
+          inOrderedList = false;
+        }
+        elements.push(<h1 key={i} className="text-2xl font-bold mt-6 mb-3 text-gray-900">{trimmedLine.substring(2)}</h1>);
+      } else if (trimmedLine.startsWith('## ')) {
+        if (inList || inOrderedList) {
+          inList = false;
+          inOrderedList = false;
+        }
+        elements.push(<h2 key={i} className="text-xl font-semibold mt-5 mb-2 text-gray-800">{trimmedLine.substring(3)}</h2>);
+      } else if (trimmedLine.startsWith('### ')) {
+        if (inList || inOrderedList) {
+          inList = false;
+          inOrderedList = false;
+        }
+        elements.push(<h3 key={i} className="text-lg font-medium mt-4 mb-2 text-gray-700">{trimmedLine.substring(4)}</h3>);
+      }
+      // Checkbox list items
+      else if (trimmedLine.startsWith('- [ ] ') || trimmedLine.startsWith('- [x] ')) {
+        const checked = trimmedLine.startsWith('- [x] ');
+        const text = checked ? trimmedLine.substring(6) : trimmedLine.substring(6);
+        elements.push(
+          <div key={i} className="flex items-start ml-4 my-1">
+            <input type="checkbox" checked={checked} disabled className="mt-1 mr-2 cursor-not-allowed" />
+            <span className={checked ? 'line-through text-gray-500' : 'text-gray-700'}>{text}</span>
+          </div>
+        );
+      }
+      // Bullet list items
+      else if (trimmedLine.startsWith('- ')) {
+        if (!inList) {
+          inList = true;
+        }
+        elements.push(<li key={i} className="ml-6 my-1 list-disc text-gray-700">{trimmedLine.substring(2)}</li>);
+      }
+      // Ordered list items
+      else if (/^\d+\.\s/.test(trimmedLine)) {
+        if (!inOrderedList) {
+          inOrderedList = true;
+        }
+        const text = trimmedLine.replace(/^\d+\.\s/, '');
+        elements.push(<li key={i} className="ml-6 my-1 list-decimal text-gray-700">{text}</li>);
+      }
+      // Blockquote
+      else if (trimmedLine.startsWith('> ')) {
+        if (inList || inOrderedList) {
+          inList = false;
+          inOrderedList = false;
+        }
+        elements.push(
+          <blockquote key={i} className="border-l-4 border-blue-300 pl-4 py-2 my-2 italic text-gray-600 bg-blue-50">
+            {trimmedLine.substring(2)}
+          </blockquote>
+        );
+      }
+      // Bold speaker format: **Speaker:** text
+      else if (/^\*\*(.+?):\*\*\s/.test(trimmedLine)) {
+        if (inList || inOrderedList) {
+          inList = false;
+          inOrderedList = false;
+        }
+        const match = trimmedLine.match(/^\*\*(.+?):\*\*\s(.*)$/);
         if (match) {
-          return <p key={i} className="my-1"><strong>{match[1]}:</strong> {match[2]}</p>;
+          elements.push(
+            <p key={i} className="my-1">
+              <strong className="text-gray-900">{match[1]}:</strong>{' '}
+              <span className="text-gray-700">{match[2]}</span>
+            </p>
+          );
         }
       }
-      return line ? <p key={i} className="my-1">{line}</p> : <br key={i} />;
+      // Code block markers (simple handling)
+      else if (trimmedLine.startsWith('```')) {
+        // Skip code block markers for now
+      }
+      // Regular paragraph
+      else if (trimmedLine) {
+        if (inList || inOrderedList) {
+          inList = false;
+          inOrderedList = false;
+        }
+        // Handle inline formatting
+        let text = trimmedLine;
+        // Bold: **text**
+        text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        // Italic: *text*
+        text = text.replace(/\*(.+?)\*/g, '<em>$1</em>');
+        // Inline code: `code`
+        text = text.replace(/`(.+?)`/g, '<code class="bg-gray-100 px-1 rounded text-sm">$1</code>');
+        
+        elements.push(
+          <p key={i} className="my-1 text-gray-700" dangerouslySetInnerHTML={{ __html: text }} />
+        );
+      }
+      // Empty line
+      else {
+        if (inList || inOrderedList) {
+          inList = false;
+          inOrderedList = false;
+        }
+        elements.push(<div key={i} className="h-2" />);
+      }
     });
+    
+    return elements;
   }
 
   return (
