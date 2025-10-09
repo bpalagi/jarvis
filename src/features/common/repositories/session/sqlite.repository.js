@@ -23,7 +23,7 @@ function create(uid, type = 'ask') {
 
 function getAllByUserId(uid) {
     const db = sqliteClient.getDb();
-    const query = "SELECT id, uid, title, session_type, started_at, ended_at, sync_state, updated_at FROM sessions WHERE uid = ? ORDER BY started_at DESC";
+    const query = "SELECT id, uid, title, session_type, started_at, ended_at, notes, sync_state, updated_at FROM sessions WHERE uid = ? ORDER BY started_at DESC";
     return db.prepare(query).all(uid);
 }
 
@@ -144,6 +144,20 @@ function searchByTerm(uid, term) {
     return db.prepare(query).all(uid, searchTerm, searchTerm, searchTerm, searchTerm, searchTerm);
 }
 
+function updateNotes(id, notes) {
+    const db = sqliteClient.getDb();
+    const now = Math.floor(Date.now() / 1000);
+    const query = 'UPDATE sessions SET notes = ?, updated_at = ? WHERE id = ?';
+    const result = db.prepare(query).run(notes, now, id);
+    return { changes: result.changes };
+}
+
+function getActiveSession(uid) {
+    const db = sqliteClient.getDb();
+    const query = 'SELECT * FROM sessions WHERE uid = ? AND ended_at IS NULL ORDER BY started_at DESC LIMIT 1';
+    return db.prepare(query).get(uid);
+}
+
 module.exports = {
     getById,
     create,
@@ -156,4 +170,6 @@ module.exports = {
     getOrCreateActive,
     endAllActiveSessions,
     searchByTerm,
+    updateNotes,
+    getActiveSession,
 }; 

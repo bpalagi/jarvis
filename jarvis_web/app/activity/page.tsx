@@ -8,13 +8,19 @@ import {
   Session,
   getSessions,
   deleteSession,
+  getActiveSession,
+  updateSessionNotes,
 } from '@/utils/api'
 
 export default function ActivityPage() {
   const userInfo = useRedirectIfNotAuth() as UserProfile | null;
   const [sessions, setSessions] = useState<Session[]>([])
+  const [activeSession, setActiveSession] = useState<Session | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [isEditingNotes, setIsEditingNotes] = useState(false)
+  const [editedNotes, setEditedNotes] = useState('')
+  const [isSavingNotes, setIsSavingNotes] = useState(false)
 
   const fetchSessions = async () => {
     try {
@@ -27,9 +33,42 @@ export default function ActivityPage() {
     }
   }
 
+  const fetchActiveSession = async () => {
+    try {
+      const active = await getActiveSession();
+      setActiveSession(active);
+      if (active?.notes) {
+        setEditedNotes(active.notes);
+      }
+    } catch (error) {
+      console.error('Failed to fetch active session:', error);
+    }
+  }
+
   useEffect(() => {
     fetchSessions()
+    fetchActiveSession()
+    
+    // Poll for active session updates every 5 seconds
+    const interval = setInterval(fetchActiveSession, 5000);
+    return () => clearInterval(interval);
   }, [])
+
+  const handleSaveNotes = async () => {
+    if (!activeSession) return;
+    
+    setIsSavingNotes(true);
+    try {
+      await updateSessionNotes(activeSession.id, editedNotes);
+      setActiveSession({ ...activeSession, notes: editedNotes });
+      setIsEditingNotes(false);
+    } catch (error) {
+      alert('Failed to save notes');
+      console.error(error);
+    } finally {
+      setIsSavingNotes(false);
+    }
+  }
 
   if (!userInfo) {
     return (
@@ -55,12 +94,40 @@ export default function ActivityPage() {
     try {
       await deleteSession(sessionId);
       setSessions(sessions => sessions.filter(s => s.id !== sessionId));
+      if (activeSession?.id === sessionId) {
+        setActiveSession(null);
+      }
     } catch (error) {
       alert('Failed to delete activity.');
       console.error(error);
     } finally {
       setDeletingId(null);
     }
+  }
+
+  const renderMarkdown = (markdown: string) => {
+    // Simple markdown rendering for the preview
+    return markdown.split('\n').map((line, i) => {
+      if (line.startsWith('# ')) {
+        return <h1 key={i} className="text-2xl font-bold mt-4 mb-2">{line.substring(2)}</h1>;
+      } else if (line.startsWith('## ')) {
+        return <h2 key={i} className="text-xl font-semibold mt-3 mb-2">{line.substring(3)}</h2>;
+      } else if (line.startsWith('### ')) {
+        return <h3 key={i} className="text-lg font-medium mt-2 mb-1">{line.substring(4)}</h3>;
+      } else if (line.startsWith('- [ ] ')) {
+        return <div key={i} className="flex items-start ml-4"><input type="checkbox" disabled className="mt-1 mr-2" /><span>{line.substring(6)}</span></div>;
+      } else if (line.startsWith('- ')) {
+        return <li key={i} className="ml-4">{line.substring(2)}</li>;
+      } else if (line.startsWith('> ')) {
+        return <blockquote key={i} className="border-l-4 border-gray-300 pl-4 italic text-gray-600 my-2">{line.substring(2)}</blockquote>;
+      } else if (line.startsWith('**') && line.endsWith('**')) {
+        const match = line.match(/\*\*(.*?):\*\* (.*)/);
+        if (match) {
+          return <p key={i} className="my-1"><strong>{match[1]}:</strong> {match[2]}</p>;
+        }
+      }
+      return line ? <p key={i} className="my-1">{line}</p> : <br key={i} />;
+    });
   }
 
   return (
@@ -71,6 +138,85 @@ export default function ActivityPage() {
             {getGreeting()}, {userInfo.display_name}
           </h1>
         </div>
+
+        {/* Active Session Section */}
+        {activeSession && (
+          <div className="mb-8">
+            <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-6">
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <h2 className="text-xl font-semibold text-blue-900 flex items-center">
+                    <span className="inline-block w-3 h-3 bg-blue-500 rounded-full mr-2 animate-pulse"></span>
+                    Live Session
+                  </h2>
+                  <p className="text-sm text-blue-700 mt-1">
+                    Started {new Date(activeSession.started_at * 1000).toLocaleString()}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  {!isEditingNotes && (
+                    <button
+                      onClick={() => {
+                        setIsEditingNotes(true);
+                        setEditedNotes(activeSession.notes || '');
+                      }}
+                      className="px-3 py-1 rounded text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                    >
+                      Edit Notes
+                    </button>
+                  )}
+                  <button
+                    onClick={() => handleDelete(activeSession.id)}
+                    disabled={deletingId === activeSession.id}
+                    className={`px-3 py-1 rounded text-sm font-medium border border-red-200 text-red-700 bg-red-50 hover:bg-red-100 transition-colors ${deletingId === activeSession.id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    {deletingId === activeSession.id ? 'Deleting...' : 'End Session'}
+                  </button>
+                </div>
+              </div>
+
+              {isEditingNotes ? (
+                <div className="space-y-4">
+                  <textarea
+                    value={editedNotes}
+                    onChange={(e) => setEditedNotes(e.target.value)}
+                    className="w-full h-96 p-4 border border-gray-300 rounded-lg font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Edit your notes in Markdown format..."
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleSaveNotes}
+                      disabled={isSavingNotes}
+                      className={`px-4 py-2 rounded text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors ${isSavingNotes ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                      {isSavingNotes ? 'Saving...' : 'Save Notes'}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setIsEditingNotes(false);
+                        setEditedNotes(activeSession.notes || '');
+                      }}
+                      className="px-4 py-2 rounded text-sm font-medium border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-white rounded-lg p-4 prose prose-sm max-w-none">
+                  {activeSession.notes ? (
+                    <div className="text-gray-800">
+                      {renderMarkdown(activeSession.notes)}
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 italic">No notes yet. Notes will appear here as the session progresses.</p>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         <div>
           <h2 className="text-2xl font-semibold text-gray-900 mb-8 text-center">
             Your Past Activity

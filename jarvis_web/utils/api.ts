@@ -11,6 +11,7 @@ export interface Session {
   session_type: string;
   started_at: number;
   ended_at?: number;
+  notes?: string;
   sync_state: 'clean' | 'dirty';
   updated_at: number;
 }
@@ -232,6 +233,20 @@ export const createSession = async (title?: string): Promise<{ id: string }> => 
 export const deleteSession = async (sessionId: string): Promise<void> => {
   const response = await apiCall(`/api/conversations/${sessionId}`, { method: 'DELETE' });
   if (!response.ok) throw new Error('Failed to delete session');
+};
+
+export const getActiveSession = async (): Promise<Session | null> => {
+  const response = await apiCall(`/api/conversations/active`, { method: 'GET' });
+  if (!response.ok) throw new Error('Failed to fetch active session');
+  return response.json();
+};
+
+export const updateSessionNotes = async (sessionId: string, notes: string): Promise<void> => {
+  const response = await apiCall(`/api/conversations/${sessionId}/notes`, {
+    method: 'PATCH',
+    body: JSON.stringify({ notes }),
+  });
+  if (!response.ok) throw new Error('Failed to update session notes');
 };
 
 export const getUserProfile = async (): Promise<UserProfile> => {

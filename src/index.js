@@ -320,6 +320,12 @@ function setupWebDataHandlers() {
                 case 'search-sessions':
                     result = await sessionRepository.searchByTerm(payload.query);
                     break;
+                case 'update-session-notes':
+                    result = await sessionRepository.updateNotes(payload.id, payload.notes);
+                    break;
+                case 'get-active-session':
+                    result = await sessionRepository.getActiveSession();
+                    break;
                 
                 // USER
                 case 'get-user-profile':

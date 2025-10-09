@@ -4,6 +4,7 @@ const summaryService = require('./summary/summaryService');
 const authService = require('../common/services/authService');
 const sessionRepository = require('../common/repositories/session');
 const sttRepository = require('./stt/repositories');
+const summaryRepository = require('./summary/repositories');
 const internalBridge = require('../../bridge/internalBridge');
 
 class ListenService {
@@ -30,8 +31,10 @@ class ListenService {
 
         // Summary service callbacks
         this.summaryService.setCallbacks({
-            onAnalysisComplete: (data) => {
+            onAnalysisComplete: async (data) => {
                 console.log('📊 Analysis completed:', data);
+                // Update notes when summary is generated
+                await this.updateSessionNotes();
             },
             onStatusUpdate: (status) => {
                 this.sendToRenderer('update-status', status);
@@ -98,6 +101,87 @@ class ListenService {
         
         // Add to summary service for analysis
         this.summaryService.addConversationTurn(speaker, text);
+
+        // Update markdown notes
+        await this.updateSessionNotes();
+    }
+
+    async updateSessionNotes() {
+        if (!this.currentSessionId) {
+            return;
+        }
+
+        try {
+            // Get all transcripts for this session
+            const transcripts = await sttRepository.getAllTranscriptsBySessionId(this.currentSessionId);
+            
+            // Get summary if available
+            const summary = await summaryRepository.getSummaryBySessionId(this.currentSessionId);
+            
+            // Generate markdown notes
+            const notes = this.generateMarkdownNotes(transcripts, summary);
+            
+            // Update session with notes
+            await sessionRepository.updateNotes(this.currentSessionId, notes);
+            
+            console.log(`[ListenService] Updated session notes for ${this.currentSessionId}`);
+        } catch (error) {
+            console.error('[ListenService] Failed to update session notes:', error);
+        }
+    }
+
+    generateMarkdownNotes(transcripts, summary) {
+        let markdown = '# Live Notes\n\n';
+        
+        // Add summary if available
+        if (summary) {
+            markdown += '## Summary\n\n';
+            if (summary.tldr) {
+                markdown += `> ${summary.tldr}\n\n`;
+            }
+            
+            if (summary.bullet_json) {
+                try {
+                    const bullets = JSON.parse(summary.bullet_json);
+                    if (bullets && bullets.length > 0) {
+                        markdown += '### Key Points\n\n';
+                        bullets.forEach(bullet => {
+                            markdown += `- ${bullet}\n`;
+                        });
+                        markdown += '\n';
+                    }
+                } catch (e) {
+                    console.error('Failed to parse bullet_json:', e);
+                }
+            }
+
+            if (summary.action_json) {
+                try {
+                    const actions = JSON.parse(summary.action_json);
+                    if (actions && actions.length > 0) {
+                        markdown += '### Action Items\n\n';
+                        actions.forEach(action => {
+                            markdown += `- [ ] ${action}\n`;
+                        });
+                        markdown += '\n';
+                    }
+                } catch (e) {
+                    console.error('Failed to parse action_json:', e);
+                }
+            }
+        }
+        
+        // Add transcript
+        if (transcripts && transcripts.length > 0) {
+            markdown += '## Transcript\n\n';
+            transcripts.forEach(transcript => {
+                const speaker = transcript.speaker || 'Unknown';
+                const text = transcript.text || '';
+                markdown += `**${speaker}:** ${text}\n\n`;
+            });
+        }
+        
+        return markdown;
     }
 
     async saveConversationTurn(speaker, transcription) {

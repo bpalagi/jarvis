@@ -17,6 +17,7 @@ const LATEST_SCHEMA = {
             { name: 'session_type', type: 'TEXT DEFAULT \'ask\'' },
             { name: 'started_at', type: 'INTEGER' },
             { name: 'ended_at', type: 'INTEGER' },
+            { name: 'notes', type: 'TEXT' },
             { name: 'sync_state', type: 'TEXT DEFAULT \'clean\'' },
             { name: 'updated_at', type: 'INTEGER' }
         ]
