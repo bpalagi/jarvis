@@ -54,6 +54,9 @@ export default function ActivityPage() {
     return () => clearInterval(interval);
   }, [])
 
+  // Filter out active session from past activity
+  const pastSessions = sessions.filter(s => !activeSession || s.id !== activeSession.id);
+
   const handleSaveNotes = async () => {
     if (!activeSession) return;
     
@@ -226,9 +229,9 @@ export default function ActivityPage() {
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-600 mx-auto"></div>
               <p className="mt-4 text-gray-600">Loading conversations...</p>
             </div>
-          ) : sessions.length > 0 ? (
+          ) : pastSessions.length > 0 ? (
             <div className="space-y-4">
-              {sessions.map((session) => (
+              {pastSessions.map((session) => (
                 <div key={session.id} className="block bg-white rounded-lg p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer">
                   <div className="flex justify-between items-start mb-3">
                     <div>
