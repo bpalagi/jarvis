@@ -12,6 +12,7 @@
         "build:renderer": "node build.js",
         "build:web": "cd jarvis_web && npm run build && cd ..",
         "build:all": "npm run build:renderer && npm run build:web",
+        "package:linux": "npm run build:all && electron-builder --linux",
         "watch:renderer": "node build.js --watch"
     },
     "keywords": [
@@ -22,7 +23,8 @@
         "contextual ai"
     ],
     "author": {
-        "name": "TangLLC"
+        "name": "TangLLC",
+        "email": "contact@tangllc.com"
     },
     "license": "GPL-3.0",
     "dependencies": {

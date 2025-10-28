@@ -524,9 +524,6 @@ export class ApiKeyHeader extends LitElement {
 
                 <div class="footer">
                     Get your API key from: OpenAI | Google | Anthropic
-                    <br />
-                    Jarvis does not collect your personal data —
-                    <span class="footer-link" @click=${this.openPrivacyPolicy}>See details</span>
                 </div>
 
                 <div class="error-message ${this.shouldFadeMessage('error') ? 'message-fade-out' : ''}" @animationend=${this.handleMessageFadeEnd}>

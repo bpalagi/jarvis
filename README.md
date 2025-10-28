@@ -3,7 +3,7 @@
 ## Quick Start
 
 ```bash
-nvm use 22
+nvm install 22
 npm i
 npm run setup
 ```

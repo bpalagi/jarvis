@@ -66,8 +66,8 @@ module.exports = {
         }
         return result;
     });
-    ipcMain.handle('listen:startMacosSystemAudio', async () => await listenService.handleStartMacosAudio());
-    ipcMain.handle('listen:stopMacosSystemAudio', async () => await listenService.handleStopMacosAudio());
+    ipcMain.handle('listen:startSystemAudio', async () => await listenService.handleStartSystemAudio());
+    ipcMain.handle('listen:stopSystemAudio', async () => await listenService.handleStopSystemAudio());
     ipcMain.handle('update-google-search-setting', async (event, enabled) => await listenService.handleUpdateGoogleSearchSetting(enabled));
     ipcMain.handle('listen:isSessionActive', async () => await listenService.isSessionActive());
     ipcMain.handle('listen:changeSession', async (event, listenButtonText) => {

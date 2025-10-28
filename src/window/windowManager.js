@@ -553,8 +553,8 @@ function getCurrentDisplay(window) {
 
 
 function createWindows() {
-    const HEADER_HEIGHT        = 47;
-    const DEFAULT_WINDOW_WIDTH = 353;
+    const HEADER_HEIGHT        = 600;
+    const DEFAULT_WINDOW_WIDTH = 800;
 
     const primaryDisplay = screen.getPrimaryDisplay();
     const { y: workAreaY, width: screenWidth } = primaryDisplay.workArea;
@@ -574,7 +574,7 @@ function createWindows() {
         alwaysOnTop: true,
         skipTaskbar: true,
         hiddenInMissionControl: true,
-        resizable: false,
+        resizable: true,
         focusable: true,
         acceptFirstMouse: true,
         webPreferences: {
@@ -594,8 +594,14 @@ function createWindows() {
     if (process.platform === 'darwin') {
         header.setWindowButtonVisibility(false);
     }
-    const headerLoadOptions = {};
-    header.loadFile(path.join(__dirname, '../ui/app/header.html'), headerLoadOptions);
+    const { app } = require('electron');
+    if (!app.isPackaged) {
+        const port = process.env.jarvis_WEB_PORT || 3000;
+        header.loadURL(`http://localhost:${port}`);
+    } else {
+        const headerLoadOptions = {};
+        header.loadFile(path.join(__dirname, '../ui/app/header.html'), headerLoadOptions);
+    }
     windowPool.set('header', header);
     layoutManager = new WindowLayoutManager(windowPool);
     movementManager = new SmoothMovementManager(windowPool);

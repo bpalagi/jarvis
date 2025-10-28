@@ -305,20 +305,20 @@ async function startCapture(screenshotIntervalSeconds = 5, imageQuality = 'mediu
             console.log('Starting macOS capture with SystemAudioDump...');
 
             // Start macOS audio capture
-            const audioResult = await window.api.listenCapture.startMacosSystemAudio();
+            const audioResult = await window.api.listenCapture.startSystemAudio();
             if (!audioResult.success) {
-                console.warn('[listenCapture] macOS audio start failed:', audioResult.error);
+                console.warn('[listenCapture] System audio start failed:', audioResult.error);
 
                 // 이미 실행 중 → stop 후 재시도
                 if (audioResult.error === 'already_running') {
-                    await window.api.listenCapture.stopMacosSystemAudio();
+                    await window.api.listenCapture.stopSystemAudio();
                     await new Promise(r => setTimeout(r, 500));
-                    const retry = await window.api.listenCapture.startMacosSystemAudio();
+                    const retry = await window.api.listenCapture.startSystemAudio();
                     if (!retry.success) {
                         throw new Error('Retry failed: ' + retry.error);
                     }
                 } else {
-                    throw new Error('Failed to start macOS audio capture: ' + audioResult.error);
+                    throw new Error('Failed to start system audio capture: ' + audioResult.error);
                 }
             }
 
@@ -349,6 +349,15 @@ async function startCapture(screenshotIntervalSeconds = 5, imageQuality = 'mediu
             const sessionActive = await window.api.listenCapture.isSessionActive();
             if (!sessionActive) {
                 throw new Error('STT sessions not initialized - please wait for initialization to complete');
+            }
+            
+            console.log('Starting Linux capture with ffmpeg...');
+
+            // Start Linux audio capture
+            const audioResult = await window.api.listenCapture.startSystemAudio();
+            if (!audioResult.success) {
+                console.warn('[listenCapture] Linux audio start failed:', audioResult.error);
+                throw new Error('Failed to start Linux audio capture: ' + audioResult.error);
             }
             
             // Linux - use display media for screen capture and getUserMedia for microphone
@@ -475,10 +484,10 @@ function stopCapture() {
         micMediaStream = null;
     }
 
-    // Stop macOS audio capture if running
-    if (isMacOS) {
-        window.api.listenCapture.stopMacosSystemAudio().catch(err => {
-            console.error('Error stopping macOS audio:', err);
+    // Stop system audio capture if running
+    if (isMacOS || isLinux) {
+        window.api.listenCapture.stopSystemAudio().catch(err => {
+            console.error('Error stopping system audio:', err);
         });
     }
 }

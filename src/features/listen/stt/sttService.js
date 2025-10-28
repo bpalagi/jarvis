@@ -462,6 +462,116 @@ class SttService {
         });
     }
 
+    async isFFmpegInstalled() {
+        return new Promise((resolve) => {
+            const ffmpeg = spawn('ffmpeg', ['-version']);
+            ffmpeg.on('close', (code) => {
+                resolve(code === 0);
+            });
+            ffmpeg.on('error', () => {
+                resolve(false);
+            });
+        });
+    }
+
+    async startLinuxAudioCapture() {
+        if (process.platform !== 'linux' || !this.theirSttSession) return false;
+
+        const ffmpegInstalled = await this.isFFmpegInstalled();
+        if (!ffmpegInstalled) {
+            console.error('ffmpeg is not installed. Please install it to capture system audio on Linux.');
+            return false;
+        }
+
+        console.log('Starting Linux audio capture for "Them" using ffmpeg...');
+
+        this.systemAudioProc = spawn('ffmpeg', [
+            '-f', 'pulse',
+            '-i', 'default',
+            '-f', 's16le',
+            '-ar', '24000',
+            '-ac', '1',
+            'pipe:1'
+        ], {
+            stdio: ['ignore', 'pipe', 'pipe'],
+        });
+
+        if (!this.systemAudioProc.pid) {
+            console.error('Failed to start ffmpeg');
+            return false;
+        }
+
+        console.log('ffmpeg started with PID:', this.systemAudioProc.pid);
+
+        const CHUNK_DURATION = 0.1;
+        const SAMPLE_RATE = 24000;
+        const BYTES_PER_SAMPLE = 2;
+        const CHANNELS = 1;
+        const CHUNK_SIZE = SAMPLE_RATE * BYTES_PER_SAMPLE * CHANNELS * CHUNK_DURATION;
+
+        let audioBuffer = Buffer.alloc(0);
+
+        let modelInfo = this.modelInfo;
+        if (!modelInfo) {
+            console.warn('[SttService] modelInfo not found, fetching on-the-fly as a fallback...');
+            modelInfo = await modelStateService.getCurrentModelInfo('stt');
+        }
+        if (!modelInfo) {
+            throw new Error('STT model info could not be retrieved.');
+        }
+
+        this.systemAudioProc.stdout.on('data', async (data) => {
+            audioBuffer = Buffer.concat([audioBuffer, data]);
+
+            while (audioBuffer.length >= CHUNK_SIZE) {
+                const chunk = audioBuffer.slice(0, CHUNK_SIZE);
+                audioBuffer = audioBuffer.slice(CHUNK_SIZE);
+                const base64Data = chunk.toString('base64');
+
+                this.sendToRenderer('system-audio-data', { data: base64Data });
+
+                if (this.theirSttSession) {
+                    try {
+                        let payload;
+                        if (modelInfo.provider === 'gemini') {
+                            payload = { audio: { data: base64Data, mimeType: 'audio/pcm;rate=24000' } };
+                        } else {
+                            payload = base64Data;
+                        }
+
+                        await this.theirSttSession.sendRealtimeInput(payload);
+                    } catch (err) {
+                        console.error('Error sending system audio:', err.message);
+                    }
+                }
+            }
+        });
+
+        this.systemAudioProc.stderr.on('data', (data) => {
+            console.error('ffmpeg stderr:', data.toString());
+        });
+
+        this.systemAudioProc.on('close', (code) => {
+            console.log('ffmpeg process closed with code:', code);
+            this.systemAudioProc = null;
+        });
+
+        this.systemAudioProc.on('error', (err) => {
+            console.error('ffmpeg process error:', err);
+            this.systemAudioProc = null;
+        });
+
+        return true;
+    }
+
+    stopLinuxAudioCapture() {
+        if (this.systemAudioProc) {
+            console.log('Stopping ffmpeg...');
+            this.systemAudioProc.kill('SIGTERM');
+            this.systemAudioProc = null;
+        }
+    }
+
     async startMacOSAudioCapture() {
         if (process.platform !== 'darwin' || !this.theirSttSession) return false;
 

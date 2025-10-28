@@ -291,15 +291,23 @@ class ListenService {
         return await this.sttService.sendMicAudioContent(data, mimeType);
     }
 
-    async startMacOSAudioCapture() {
-        if (process.platform !== 'darwin') {
-            throw new Error('macOS audio capture only available on macOS');
+    async startSystemAudioCapture() {
+        if (process.platform === 'darwin') {
+            return await this.sttService.startMacOSAudioCapture();
+        } else if (process.platform === 'linux') {
+            return await this.sttService.startLinuxAudioCapture();
+        } else {
+            console.warn(`System audio capture is not supported on ${process.platform}`);
+            return false;
         }
-        return await this.sttService.startMacOSAudioCapture();
     }
 
-    async stopMacOSAudioCapture() {
-        this.sttService.stopMacOSAudioCapture();
+    async stopSystemAudioCapture() {
+        if (process.platform === 'darwin') {
+            this.sttService.stopMacOSAudioCapture();
+        } else if (process.platform === 'linux') {
+            this.sttService.stopLinuxAudioCapture();
+        }
     }
 
     isSessionActive() {
@@ -313,7 +321,7 @@ class ListenService {
             // Close STT sessions
             await this.sttService.closeSessions();
 
-            await this.stopMacOSAudioCapture();
+            await this.stopSystemAudioCapture();
 
             // End database session
             if (this.currentSessionId) {
@@ -388,25 +396,22 @@ class ListenService {
         'Error sending user audio:'
     );
 
-    handleStartMacosAudio = this._createHandler(
+    handleStartSystemAudio = this._createHandler(
         async () => {
-            if (process.platform !== 'darwin') {
-                return { success: false, error: 'macOS audio capture only available on macOS' };
-            }
             if (this.sttService.isMacOSAudioRunning?.()) {
                 return { success: false, error: 'already_running' };
             }
-            await this.startMacOSAudioCapture();
+            await this.startSystemAudioCapture();
             return { success: true, error: null };
         },
-        'macOS audio capture started.',
-        'Error starting macOS audio capture:'
+        'System audio capture started.',
+        'Error starting system audio capture:'
     );
     
-    handleStopMacosAudio = this._createHandler(
-        this.stopMacOSAudioCapture,
-        'macOS audio capture stopped.',
-        'Error stopping macOS audio capture:'
+    handleStopSystemAudio = this._createHandler(
+        this.stopSystemAudioCapture,
+        'System audio capture stopped.',
+        'Error stopping system audio capture:'
     );
 
     handleUpdateGoogleSearchSetting = this._createHandler(

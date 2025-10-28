@@ -43,3 +43,10 @@ mac:
         arch: universal
       - target: zip
         arch: universal
+
+linux:
+  target:
+    - target: pacman
+      arch:
+        - x64
+  category: Utility
