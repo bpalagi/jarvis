@@ -150,6 +150,7 @@ class SttService {
     }
 
     async initializeSttSessions(language = 'en') {
+        console.log(`[SttService] initializeSttSessions called with language: ${language}`);
         const effectiveLanguage = language || 'en';
 
         const modelInfo = await modelStateService.getCurrentModelInfo('stt');
@@ -475,6 +476,7 @@ class SttService {
     }
 
     async startLinuxAudioCapture() {
+        console.log('[SttService] startLinuxAudioCapture called.');
         if (process.platform !== 'linux' || !this.theirSttSession) return false;
 
         const ffmpegInstalled = await this.isFFmpegInstalled();

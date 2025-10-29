@@ -360,12 +360,16 @@ async function startCapture(screenshotIntervalSeconds = 5, imageQuality = 'mediu
                 throw new Error('Failed to start Linux audio capture: ' + audioResult.error);
             }
             
-            // Linux - use display media for screen capture and getUserMedia for microphone
-            mediaStream = await navigator.mediaDevices.getDisplayMedia({
+            // Linux - use desktop capture for screen and getUserMedia for microphone
+            mediaStream = await navigator.mediaDevices.getUserMedia({
                 video: {
-                    frameRate: 1,
-                    width: { ideal: 1920 },
-                    height: { ideal: 1080 },
+                    mandatory: {
+                        chromeMediaSource: 'desktop',
+                        maxWidth: 1920,
+                        maxHeight: 1080,
+                        minFrameRate: 1,
+                        maxFrameRate: 1,
+                    }
                 },
                 audio: false, // Don't use system audio loopback on Linux
             });

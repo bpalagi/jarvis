@@ -59,20 +59,20 @@ class ShortcutsService {
 
     getDefaultKeybinds() {
         return {
-            moveUp: 'Cmd+Up',
-            moveDown: 'Cmd+Down',
-            moveLeft: 'Cmd+Left',
-            moveRight: 'Cmd+Right',
-            toggleVisibility: 'Cmd+\'',
-            toggleClickThrough: 'Cmd+M',
-            nextStep: 'Cmd+Enter',
-            getGuidance: 'Cmd+\'',
-            manualScreenshot: 'Cmd+Shift+S',
-            previousResponse: 'Cmd+[' ,
-            nextResponse: 'Cmd+]' ,
-            scrollUp: 'Cmd+Shift+Up',
-            scrollDown: 'Cmd+Shift+Down',
-            toggleListenSession: 'Cmd+L', // Added this line
+            moveUp: 'Ctrl+Up',
+            moveDown: 'Ctrl+Down',
+            moveLeft: 'Ctrl+Left',
+            moveRight: 'Ctrl+Right',
+            toggleVisibility: 'Ctrl+\'',
+            toggleClickThrough: 'Ctrl+M',
+            nextStep: 'Ctrl+Enter',
+            getGuidance: 'Ctrl+\'',
+            manualScreenshot: 'Ctrl+Shift+S',
+            previousResponse: 'Ctrl+[' ,
+            nextResponse: 'Ctrl+]' ,
+            scrollUp: 'Ctrl+Shift+Up',
+            scrollDown: 'Ctrl+Shift+Down',
+            toggleListenSession: 'Ctrl+L', // Added this line
         };
     }
 

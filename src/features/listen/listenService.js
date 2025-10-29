@@ -57,6 +57,7 @@ class ListenService {
     }
 
     async handleListenRequest(listenButtonText) {
+        console.log(`[ListenService] handleListenRequest called with: ${listenButtonText}`);
         const { windowPool } = require('../../window/windowManager');
         const listenWindow = windowPool.get('listen');
         const header = windowPool.get('header');
@@ -233,6 +234,7 @@ class ListenService {
     }
 
     async initializeSession(language = 'en') {
+        console.log(`[ListenService] initializeSession called with language: ${language}`);
         if (this.isInitializingSession) {
             console.log('Session initialization already in progress.');
             return false;

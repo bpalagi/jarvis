@@ -167,9 +167,30 @@ app.whenReady().then(async () => {
 
     // Setup native loopback audio capture for Windows
     session.defaultSession.setDisplayMediaRequestHandler((request, callback) => {
-        desktopCapturer.getSources({ types: ['screen'] }).then((sources) => {
-            // Grant access to the first screen found with loopback audio
-            callback({ video: sources[0], audio: 'loopback' });
+        desktopCapturer.getSources({ types: ['screen', 'window'] }).then((sources) => {
+            console.log('[DesktopCapturer] Available sources:', sources.map(s => ({ id: s.id, name: s.name, display_id: s.display_id })));
+            let selectedSource = null;
+            if (process.platform === 'linux') {
+                const primaryDisplay = screen.getPrimaryDisplay();
+                console.log('[DesktopCapturer] Primary display ID:', primaryDisplay.id);
+                selectedSource = sources.find(source => source.display_id === primaryDisplay.id.toString());
+                if (!selectedSource) {
+                    console.warn('[DesktopCapturer] Primary display not found by ID, attempting fallback to name.');
+                    selectedSource = sources.find(source => source.name === 'Entire screen' || source.name === 'Screen 1');
+                }
+                console.log('[DesktopCapturer] Selected source for Linux:', selectedSource ? { id: selectedSource.id, name: selectedSource.name, display_id: selectedSource.display_id } : 'None');
+            } else { // For Windows and macOS
+                selectedSource = sources[0];
+                console.log('[DesktopCapturer] Selected source for Windows/macOS:', selectedSource ? { id: selectedSource.id, name: selectedSource.name, display_id: selectedSource.display_id } : 'None');
+            }
+
+            if (selectedSource) {
+                const audioOption = process.platform === 'win32' ? 'loopback' : false; // Only use loopback for Windows
+                callback({ video: selectedSource, audio: audioOption });
+            } else {
+                console.error('No suitable screen source found for capture.');
+                callback({});
+            }
         }).catch((error) => {
             console.error('Failed to get desktop capturer sources:', error);
             callback({});
