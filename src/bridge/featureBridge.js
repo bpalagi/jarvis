@@ -90,7 +90,7 @@ module.exports = {
     ipcMain.handle('model:set-selected-model', async (e, { type, modelId }) => await modelStateService.handleSetSelectedModel(type, modelId));
     ipcMain.handle('model:get-available-models', async (e, { type }) => await modelStateService.getAvailableModels(type));
     ipcMain.handle('model:are-providers-configured', async () => await modelStateService.areProvidersConfigured());
-    ipcMain.handle('model:get-provider-config', () => modelStateService.getProviderConfig());
+    
     ipcMain.handle('model:re-initialize-state', async () => await modelStateService.initialize());
 
     // ModelStateService 이벤트를 모든 윈도우에 브로드캐스트

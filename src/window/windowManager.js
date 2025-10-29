@@ -595,13 +595,8 @@ function createWindows() {
         header.setWindowButtonVisibility(false);
     }
     const { app } = require('electron');
-    if (!app.isPackaged) {
-        const port = process.env.jarvis_WEB_PORT || 3000;
-        header.loadURL(`http://localhost:${port}`);
-    } else {
-        const headerLoadOptions = {};
-        header.loadFile(path.join(__dirname, '../ui/app/header.html'), headerLoadOptions);
-    }
+    const headerLoadOptions = {};
+    header.loadFile(path.join(__dirname, '../ui/app/header.html'), headerLoadOptions);
     windowPool.set('header', header);
     layoutManager = new WindowLayoutManager(windowPool);
     movementManager = new SmoothMovementManager(windowPool);

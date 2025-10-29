@@ -13,7 +13,8 @@
         "build:web": "cd jarvis_web && npm run build && cd ..",
         "build:all": "npm run build:renderer && npm run build:web",
         "package:linux": "npm run build:all && electron-builder --linux",
-        "watch:renderer": "node build.js --watch"
+        "watch:renderer": "node build.js --watch",
+        "dev": "concurrently \"npm run watch:renderer\" \"electron .\""
     },
     "keywords": [
         "jarvis",
@@ -47,6 +48,7 @@
     },
     "devDependencies": {
         "@electron/fuses": "^1.8.0",
+        "concurrently": "^9.2.1",
         "electron": "^30.5.1",
         "electron-builder": "^26.0.12",
         "electron-reloader": "^1.2.3",

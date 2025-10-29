@@ -29,7 +29,7 @@ const windowBridge = require('./bridge/windowBridge');
 
 // Global variables
 const eventBridge = new EventEmitter();
-let WEB_PORT = 3000;
+
 let isShuttingDown = false; // Flag to prevent infinite shutdown loop
 
 //////// after_modelStateService ////////
@@ -190,15 +190,27 @@ app.whenReady().then(async () => {
 
         //////// after_modelStateService ////////
         await modelStateService.initialize();
+
+        const geminiApiKey = process.env.GEMINI_API_KEY;
+        if (geminiApiKey) {
+            await modelStateService.setApiKey('gemini', geminiApiKey, 'llm');
+            console.log('>>> [index.js] Gemini API key loaded from environment variable.');
+        } else {
+            console.error('>>> [index.js] GEMINI_API_KEY environment variable is not set. Exiting application.');
+            app.quit();
+            process.exit(1);
+        }
         //////// after_modelStateService ////////
 
         featureBridge.initialize();  // 추가: featureBridge 초기화
         windowBridge.initialize();
-        setupWebDataHandlers();
+
+        // Simplified IPC handlers for API key management
+
+
 
         // Start web server and create windows ONLY after all initializations are successful
-        WEB_PORT = await startWebStack();
-        console.log('Web front-end listening on', WEB_PORT);
+
         
         createWindows();
 
@@ -275,124 +287,7 @@ app.on('activate', () => {
     }
 });
 
-function setupWebDataHandlers() {
-    const sessionRepository = require('./features/common/repositories/session');
-    const sttRepository = require('./features/listen/stt/repositories');
-    const summaryRepository = require('./features/listen/summary/repositories');
-    const askRepository = require('./features/ask/repositories');
-    const userRepository = require('./features/common/repositories/user');
-    const personalizeRepository = require('./features/common/repositories/preset');
 
-    const handleRequest = async (channel, responseChannel, payload) => {
-        let result;
-        // const currentUserId = authService.getCurrentUserId(); // No longer needed here
-        try {
-            switch (channel) {
-                // SESSION
-                case 'get-sessions':
-                    // Adapter injects UID
-                    result = await sessionRepository.getAllByUserId();
-                    break;
-                case 'get-session-details':
-                    const session = await sessionRepository.getById(payload);
-                    if (!session) {
-                        result = null;
-                        break;
-                    }
-                    const [transcripts, ai_messages, summary] = await Promise.all([
-                        sttRepository.getAllTranscriptsBySessionId(payload),
-                        askRepository.getAllAiMessagesBySessionId(payload),
-                        summaryRepository.getSummaryBySessionId(payload)
-                    ]);
-                    result = { session, transcripts, ai_messages, summary };
-                    break;
-                case 'delete-session':
-                    result = await sessionRepository.deleteWithRelatedData(payload);
-                    break;
-                case 'create-session':
-                    // Adapter injects UID
-                    const id = await sessionRepository.create('ask');
-                    if (payload && payload.title) {
-                        await sessionRepository.updateTitle(id, payload.title);
-                    }
-                    result = { id };
-                    break;
-                case 'search-sessions':
-                    result = await sessionRepository.searchByTerm(payload.query);
-                    break;
-                case 'update-session-notes':
-                    result = await sessionRepository.updateNotes(payload.id, payload.notes);
-                    break;
-                case 'get-active-session':
-                    result = await sessionRepository.getActiveSession();
-                    break;
-                
-                // USER
-                case 'get-user-profile':
-                    // Adapter injects UID
-                    result = await userRepository.getById();
-                    break;
-                case 'update-user-profile':
-                     // Adapter injects UID
-                    result = await userRepository.update(payload);
-                    break;
-                case 'find-or-create-user':
-                    result = await userRepository.findOrCreate(payload);
-                    break;
-                case 'save-api-key':
-                    // Use ModelStateService as the single source of truth for API key management
-                    result = await modelStateService.setApiKey(payload.provider, payload.apiKey);
-                    break;
-                case 'check-api-key-status':
-                    // Use ModelStateService to check API key status
-                    const hasApiKey = await modelStateService.hasValidApiKey();
-                    result = { hasApiKey };
-                    break;
-                case 'delete-account':
-                    // Adapter injects UID
-                    result = await userRepository.deleteById();
-                    break;
-
-                
-                
-                // BATCH
-                case 'get-batch-data':
-                    const includes = payload ? payload.split(',').map(item => item.trim()) : ['profile', 'personalize', 'sessions'];
-                    const promises = {};
-            
-                    if (includes.includes('profile')) {
-                        // Adapter injects UID
-                        promises.profile = userRepository.getById();
-                    }
-                    if (includes.includes('personalize')) {
-                        promises.personalize = personalizeRepository.getPersonalizePrompt();
-                    }
-                    if (includes.includes('sessions')) {
-                        // Adapter injects UID
-                        promises.sessions = sessionRepository.getAllByUserId();
-                    }
-                    
-                    const batchResult = {};
-                    const promiseResults = await Promise.all(Object.values(promises));
-                    Object.keys(promises).forEach((key, index) => {
-                        batchResult[key] = promiseResults[index];
-                    });
-
-                    result = batchResult;
-                    break;
-
-                default:
-                    throw new Error(`Unknown web data channel: ${channel}`);
-            }
-            eventBridge.emit(responseChannel, { success: true, data: result });
-        } catch (error) {
-            console.error(`Error handling web data request for ${channel}:`, error);
-            eventBridge.emit(responseChannel, { success: false, error: error.message });
-        }
-    };
-    
-    eventBridge.on('web-data-request', handleRequest);
-}
 
 async function handleCustomUrl(url) {
     try {
@@ -471,109 +366,5 @@ function handlePersonalizeFromUrl(params) {
 }
 
 
-async function startWebStack() {
-  console.log('NODE_ENV =', process.env.NODE_ENV); 
-  const isDev = !app.isPackaged;
 
-  const getAvailablePort = () => {
-    return new Promise((resolve, reject) => {
-      const server = require('net').createServer();
-      server.listen(0, (err) => {
-        if (err) reject(err);
-        const port = server.address().port;
-        server.close(() => resolve(port));
-      });
-    });
-  };
-
-  const apiPort = await getAvailablePort();
-  const frontendPort = await getAvailablePort();
-
-  console.log(`🔧 Allocated ports: API=${apiPort}, Frontend=${frontendPort}`);
-
-  process.env.jarvis_API_PORT = apiPort.toString();
-  process.env.jarvis_API_URL = `http://localhost:${apiPort}`;
-  process.env.jarvis_WEB_PORT = frontendPort.toString();
-  process.env.jarvis_WEB_URL = `http://localhost:${frontendPort}`;
-
-  console.log(`🌍 Environment variables set:`, {
-    jarvis_API_URL: process.env.jarvis_API_URL,
-    jarvis_WEB_URL: process.env.jarvis_WEB_URL
-  });
-
-  const createBackendApp = require('../jarvis_web/backend_node');
-  const nodeApi = createBackendApp(eventBridge);
-
-  const staticDir = app.isPackaged
-    ? path.join(process.resourcesPath, 'out')
-    : path.join(__dirname, '..', 'jarvis_web', 'out');
-
-  const fs = require('fs');
-
-  if (!fs.existsSync(staticDir)) {
-    console.error(`============================================================`);
-    console.error(`[ERROR] Frontend build directory not found!`);
-    console.error(`Path: ${staticDir}`);
-    console.error(`Please run 'npm run build' inside the 'jarvis_web' directory first.`);
-    console.error(`============================================================`);
-    app.quit();
-    return;
-  }
-
-  const runtimeConfig = {
-    API_URL: `http://localhost:${apiPort}`,
-    WEB_URL: `http://localhost:${frontendPort}`,
-    timestamp: Date.now()
-  };
-  
-  // 쓰기 가능한 임시 폴더에 런타임 설정 파일 생성
-  const tempDir = app.getPath('temp');
-  const configPath = path.join(tempDir, 'runtime-config.json');
-  fs.writeFileSync(configPath, JSON.stringify(runtimeConfig, null, 2));
-  console.log(`📝 Runtime config created in temp location: ${configPath}`);
-
-  const frontSrv = express();
-  
-  // 프론트엔드에서 /runtime-config.json을 요청하면 임시 폴더의 파일을 제공
-  frontSrv.get('/runtime-config.json', (req, res) => {
-    res.sendFile(configPath);
-  });
-
-  frontSrv.use((req, res, next) => {
-    if (req.path.indexOf('.') === -1 && req.path !== '/') {
-      const htmlPath = path.join(staticDir, req.path + '.html');
-      if (fs.existsSync(htmlPath)) {
-        return res.sendFile(htmlPath);
-      }
-    }
-    next();
-  });
-  
-  frontSrv.use(express.static(staticDir));
-  
-  const frontendServer = await new Promise((resolve, reject) => {
-    const server = frontSrv.listen(frontendPort, '127.0.0.1', () => resolve(server));
-    server.on('error', reject);
-    app.once('before-quit', () => server.close());
-  });
-
-  console.log(`✅ Frontend server started on http://localhost:${frontendPort}`);
-
-  const apiSrv = express();
-  apiSrv.use(nodeApi);
-
-  const apiServer = await new Promise((resolve, reject) => {
-    const server = apiSrv.listen(apiPort, '127.0.0.1', () => resolve(server));
-    server.on('error', reject);
-    app.once('before-quit', () => server.close());
-  });
-
-  console.log(`✅ API server started on http://localhost:${apiPort}`);
-
-  console.log(`🚀 All services ready:
-   Frontend: http://localhost:${frontendPort}
-   API:      http://localhost:${apiPort}`);
-
-  return frontendPort;
-}
 

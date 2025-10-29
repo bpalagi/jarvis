@@ -26,7 +26,6 @@ export class PermissionHeader extends LitElement {
         }
 
         .container {
-            -webkit-app-region: drag;
             width: 285px;
             /* height is now set dynamically */
             padding: 18px 20px;
@@ -56,7 +55,6 @@ export class PermissionHeader extends LitElement {
         }
 
         .close-button {
-            -webkit-app-region: no-drag;
             position: absolute;
             top: 10px;
             right: 10px;
@@ -153,7 +151,6 @@ export class PermissionHeader extends LitElement {
         }
 
         .action-button {
-            -webkit-app-region: no-drag;
             width: 100%;
             height: 34px;
             background: rgba(255, 255, 255, 0.2);
@@ -195,7 +192,6 @@ export class PermissionHeader extends LitElement {
         }
 
         .continue-button {
-            -webkit-app-region: no-drag;
             width: 100%;
             height: 34px;
             background: rgba(34, 197, 94, 0.8);
