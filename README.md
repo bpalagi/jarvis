@@ -18,7 +18,6 @@ Jarvis can listen to your conversations and automatically generate markdown note
 - **Manual Editing**: Edit notes during or after a session with a built-in markdown editor
 - **Persistent Storage**: All notes are saved in the local database
 
-See [LIVE_NOTES_ARCHITECTURE.md](LIVE_NOTES_ARCHITECTURE.md) for technical details and [LIVE_NOTES_TESTING.md](LIVE_NOTES_TESTING.md) for testing instructions.
 
 ### Keyboard Shortcuts
 
