@@ -31,16 +31,29 @@ export default function NoteEditor({
     const [saveTimeoutId, setSaveTimeoutId] = useState<NodeJS.Timeout | null>(null)
     const [lastSavedNotes, setLastSavedNotes] = useState(initialNotes)
 
-    // Update local state when initialNotes changes, but only if:
-    // 1. User isn't currently typing (no pending save), AND
-    // 2. The new notes are different from what we last saved (to avoid overwriting with stale data)
+    // Update local state when initialNotes changes from the server
+    // This uses intelligent merging to allow transcription updates while preserving user edits
     useEffect(() => {
-        // If there's no pending save and the incoming notes are different from our current state
-        if (!saveTimeoutId && initialNotes !== notes && saveStatus !== 'saving') {
+        // Skip if incoming notes are the same as what we have
+        if (initialNotes === notes) {
+            return;
+        }
+
+        // If user is actively typing (has pending save), be smart about merging
+        if (saveTimeoutId) {
+            // If the incoming notes are longer and contain our current notes as a prefix,
+            // it means new content was appended (like a transcription), so we should accept it
+            if (initialNotes.length > notes.length && initialNotes.startsWith(notes)) {
+                setNotes(initialNotes)
+                setLastSavedNotes(initialNotes)
+            }
+            // Otherwise, keep the user's edits - they take priority
+        } else {
+            // No pending save, safe to update
             setNotes(initialNotes)
             setLastSavedNotes(initialNotes)
         }
-    }, [initialNotes, saveTimeoutId, notes, saveStatus])
+    }, [initialNotes, notes, saveTimeoutId])
 
     const saveNotes = useCallback(async (content: string) => {
         setSaveStatus('saving')

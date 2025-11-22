@@ -33,8 +33,8 @@ class ListenService {
         this.summaryService.setCallbacks({
             onAnalysisComplete: async (data) => {
                 console.log('📊 Analysis completed:', data);
-                // Update notes when summary is generated
-                await this.updateSessionNotes();
+                // Update summary section when analysis is generated
+                await this.updateSummaryInNotes();
             },
             onStatusUpdate: (status) => {
                 this.sendToRenderer('update-status', status);
@@ -45,7 +45,7 @@ class ListenService {
     sendToRenderer(channel, data) {
         const { windowPool } = require('../../window/windowManager');
         const listenWindow = windowPool?.get('listen');
-        
+
         if (listenWindow && !listenWindow.isDestroyed()) {
             listenWindow.webContents.send(channel, data);
         }
@@ -71,7 +71,7 @@ class ListenService {
                         listenWindow.webContents.send('session-state-changed', { isActive: true });
                     }
                     break;
-        
+
                 case 'Stop':
                     console.log('[ListenService] changeSession to "Stop"');
                     await this.closeSession();
@@ -79,67 +79,152 @@ class ListenService {
                         listenWindow.webContents.send('session-state-changed', { isActive: false });
                     }
                     break;
-        
+
                 default:
                     throw new Error(`[ListenService] unknown listenButtonText: ${listenButtonText}`);
             }
-            
+
             header.webContents.send('listen:changeSessionResult', { success: true });
 
         } catch (error) {
             console.error('[ListenService] error in handleListenRequest:', error);
             header.webContents.send('listen:changeSessionResult', { success: false });
-            throw error; 
+            throw error;
         }
     }
 
     async handleTranscriptionComplete(speaker, text) {
         console.log(`[ListenService] Transcription complete: ${speaker} - ${text}`);
-        
+
         // Save to database
         await this.saveConversationTurn(speaker, text);
-        
+
         // Add to summary service for analysis
         this.summaryService.addConversationTurn(speaker, text);
 
         // Update markdown notes
-        await this.updateSessionNotes();
+        await this.updateSessionNotes(speaker, text);
     }
 
-    async updateSessionNotes() {
+    async updateSessionNotes(speaker, text) {
         if (!this.currentSessionId) {
             return;
         }
 
         try {
-            // Get all transcripts for this session
-            const transcripts = await sttRepository.getAllTranscriptsBySessionId(this.currentSessionId);
-            
-            // Get summary if available
-            const summary = await summaryRepository.getSummaryBySessionId(this.currentSessionId);
-            
-            // Generate markdown notes
-            const notes = this.generateMarkdownNotes(transcripts, summary);
-            
+            // Get current notes from the session
+            const session = await sessionRepository.getById(this.currentSessionId);
+            let notes = session?.notes || '';
+
+            // Initialize notes if empty
+            if (!notes.trim()) {
+                notes = '# Live Notes\n\n## Transcript\n\n';
+            }
+
+            // Check if there's a Transcript section, if not add it
+            if (!notes.includes('## Transcript')) {
+                notes += '\n## Transcript\n\n';
+            }
+
+            // Append the new transcription to the end
+            const newEntry = `**${speaker}:** ${text}\n\n`;
+            notes += newEntry;
+
             // Update session with notes
             await sessionRepository.updateNotes(this.currentSessionId, notes);
-            
-            console.log(`[ListenService] Updated session notes for ${this.currentSessionId}`);
+
+            console.log(`[ListenService] Appended transcription to session notes for ${this.currentSessionId}`);
         } catch (error) {
             console.error('[ListenService] Failed to update session notes:', error);
         }
     }
 
+    async updateSummaryInNotes() {
+        if (!this.currentSessionId) {
+            return;
+        }
+
+        try {
+            // Get current notes and summary
+            const session = await sessionRepository.getById(this.currentSessionId);
+            const summary = await summaryRepository.getSummaryBySessionId(this.currentSessionId);
+
+            if (!summary) {
+                return; // No summary to add
+            }
+
+            let notes = session?.notes || '';
+
+            // Generate summary markdown
+            let summaryMarkdown = '## Summary\n\n';
+            if (summary.tldr) {
+                summaryMarkdown += `> ${summary.tldr}\n\n`;
+            }
+
+            if (summary.bullet_json) {
+                try {
+                    const bullets = JSON.parse(summary.bullet_json);
+                    if (bullets && bullets.length > 0) {
+                        summaryMarkdown += '### Key Points\n\n';
+                        bullets.forEach(bullet => {
+                            summaryMarkdown += `- ${bullet}\n`;
+                        });
+                        summaryMarkdown += '\n';
+                    }
+                } catch (e) {
+                    console.error('Failed to parse bullet_json:', e);
+                }
+            }
+
+            if (summary.action_json) {
+                try {
+                    const actions = JSON.parse(summary.action_json);
+                    if (actions && actions.length > 0) {
+                        summaryMarkdown += '### Action Items\n\n';
+                        actions.forEach(action => {
+                            summaryMarkdown += `- [ ] ${action}\n`;
+                        });
+                        summaryMarkdown += '\n';
+                    }
+                } catch (e) {
+                    console.error('Failed to parse action_json:', e);
+                }
+            }
+
+            // Check if there's already a Summary section and replace it
+            const summaryRegex = /## Summary\n\n[\s\S]*?(?=\n## |\n# |$)/;
+            if (summaryRegex.test(notes)) {
+                notes = notes.replace(summaryRegex, summaryMarkdown);
+            } else {
+                // Insert summary after the title, before transcript
+                if (notes.includes('## Transcript')) {
+                    notes = notes.replace('## Transcript', summaryMarkdown + '## Transcript');
+                } else if (notes.includes('# Live Notes')) {
+                    notes = notes.replace('# Live Notes\n\n', `# Live Notes\n\n${summaryMarkdown}`);
+                } else {
+                    notes = `# Live Notes\n\n${summaryMarkdown}${notes}`;
+                }
+            }
+
+            // Update session with notes
+            await sessionRepository.updateNotes(this.currentSessionId, notes);
+
+            console.log(`[ListenService] Updated summary section in notes for ${this.currentSessionId}`);
+        } catch (error) {
+            console.error('[ListenService] Failed to update summary in notes:', error);
+        }
+    }
+
     generateMarkdownNotes(transcripts, summary) {
         let markdown = '# Live Notes\n\n';
-        
+
         // Add summary if available
         if (summary) {
             markdown += '## Summary\n\n';
             if (summary.tldr) {
                 markdown += `> ${summary.tldr}\n\n`;
             }
-            
+
             if (summary.bullet_json) {
                 try {
                     const bullets = JSON.parse(summary.bullet_json);
@@ -170,7 +255,7 @@ class ListenService {
                 }
             }
         }
-        
+
         // Add transcript
         if (transcripts && transcripts.length > 0) {
             markdown += '## Transcript\n\n';
@@ -180,7 +265,7 @@ class ListenService {
                 markdown += `**${speaker}:** ${text}\n\n`;
             });
         }
-        
+
         return markdown;
     }
 
@@ -213,13 +298,13 @@ class ListenService {
                 // This case should ideally not happen as authService initializes a default user.
                 throw new Error("Cannot initialize session: auth service not ready.");
             }
-            
+
             this.currentSessionId = await sessionRepository.getOrCreateActive('listen');
             console.log(`[DB] New listen session ensured: ${this.currentSessionId}`);
 
             // Set session ID for summary service
             this.summaryService.setSessionId(this.currentSessionId);
-            
+
             // Reset conversation history
             this.summaryService.resetConversationHistory();
 
@@ -272,9 +357,9 @@ class ListenService {
             /* ------------------------------------------- */
 
             console.log('✅ Listen service initialized successfully.');
-            
+
             this.sendToRenderer('update-status', 'Connected. Ready to listen.');
-            
+
             return true;
         } catch (error) {
             console.error('❌ Failed to initialize listen service:', error);
@@ -402,7 +487,7 @@ class ListenService {
         'macOS audio capture started.',
         'Error starting macOS audio capture:'
     );
-    
+
     handleStopMacosAudio = this._createHandler(
         this.stopMacOSAudioCapture,
         'macOS audio capture stopped.',
