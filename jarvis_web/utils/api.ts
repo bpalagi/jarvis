@@ -242,8 +242,8 @@ export const getActiveSession = async (): Promise<Session | null> => {
 };
 
 export const updateSessionNotes = async (sessionId: string, notes: string): Promise<void> => {
-  const response = await apiCall(`/api/conversations/${sessionId}/notes`, {
-    method: 'PATCH',
+  const response = await apiCall(`/api/notes/${sessionId}`, {
+    method: 'PUT',
     body: JSON.stringify({ notes }),
   });
   if (!response.ok) throw new Error('Failed to update session notes');
@@ -336,4 +336,67 @@ export const logout = async () => {
   localStorage.removeItem('user_info');
 
   window.location.href = '/login';
-}; 
+};
+
+// ── New Transcription & Notes API ──
+
+export async function getSessionNotes(sessionId: string): Promise<string> {
+  const res = await apiCall(`/api/notes/${sessionId}`);
+  if (!res.ok) {
+    throw new Error(`Failed to fetch notes: ${res.status}`);
+  }
+  const data = await res.json();
+  return data.notes ?? '';
+}
+
+// Overloading updateSessionNotes to match existing signature if needed, 
+// but the existing one uses PATCH /api/conversations/:id/notes.
+// The new one uses PUT /api/notes/:id. 
+// We will keep the existing one as primary if it works, or replace it.
+// The existing one:
+// export const updateSessionNotes = async (sessionId: string, notes: string): Promise<void> => { ... }
+// It seems we have a conflict. The existing updateSessionNotes uses a different endpoint.
+// I will rename the new one to updateSessionNotesDirect or just rely on the existing one if it does the same thing.
+// However, the plan was to use the new /api/notes endpoint.
+// Let's replace the existing updateSessionNotes with the new implementation but keep the signature.
+
+export async function startTranscription(sessionId: string, audioSource: string = 'mic'): Promise<void> {
+  const res = await apiCall(`/api/transcribe/start`, {
+    method: 'POST',
+    body: JSON.stringify({ sessionId, audioSource }),
+  });
+  if (!res.ok) {
+    throw new Error('Failed to start transcription');
+  }
+}
+
+export async function stopTranscription(sessionId: string): Promise<void> {
+  const res = await apiCall(`/api/transcribe/stop`, {
+    method: 'POST',
+    body: JSON.stringify({ sessionId }),
+  });
+  if (!res.ok) {
+    throw new Error('Failed to stop transcription');
+  }
+}
+
+export function streamTranscription(sessionId: string, onResult: (data: { speaker: string; text: string }) => void): EventSource {
+  // Use the API_ORIGIN for the EventSource URL
+  const url = `${API_ORIGIN}/api/transcribe/stream/${sessionId}`;
+  const es = new EventSource(url);
+  es.onmessage = (e) => {
+    try {
+      const data = JSON.parse(e.data);
+      if (data.text) {
+        onResult(data);
+      }
+    } catch (err) {
+      console.error('Error parsing SSE data', err);
+    }
+  };
+  es.onerror = (e) => {
+    console.error('Transcription SSE error', e);
+    es.close();
+  };
+  return es;
+} 

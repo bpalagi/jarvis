@@ -27,10 +27,14 @@ function createApp(eventBridge) {
 
     app.use('/api', identifyUser);
 
+    // Existing routes
     app.use('/api/auth', require('./routes/auth'));
     app.use('/api/user', require('./routes/user'));
     app.use('/api/conversations', require('./routes/conversations'));
-    
+    // New routes for transcription and notes
+    app.use('/api/transcribe', require('./routes/transcribe'));
+    app.use('/api/notes', require('./routes/notes'));
+
 
     app.get('/api/sync/status', (req, res) => {
         res.json({

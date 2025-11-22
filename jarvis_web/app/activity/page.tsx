@@ -12,6 +12,7 @@ import {
   getActiveSession,
   updateSessionNotes,
   chatWithAssistant,
+  streamTranscription,
 } from '@/utils/api'
 
 interface ChatMessage {
@@ -45,6 +46,9 @@ export default function ActivityPage() {
   const fetchActiveSession = async () => {
     try {
       const active = await getActiveSession();
+      // Only update if we don't have an active session or if the ID changed
+      // OR if we want to sync notes. But if we are streaming, we might want to be careful.
+      // For now, we let polling update it, assuming NoteEditor handles the merge.
       setActiveSession(active);
     } catch (error) {
       console.error('Failed to fetch active session:', error);
@@ -59,6 +63,32 @@ export default function ActivityPage() {
     const interval = setInterval(fetchActiveSession, 5000);
     return () => clearInterval(interval);
   }, [])
+
+  // Subscribe to live transcription updates
+  useEffect(() => {
+    if (!activeSession || activeSession.session_type !== 'listen') return;
+
+    const es = streamTranscription(activeSession.id, (data) => {
+      const { speaker, text } = data;
+      setActiveSession(prev => {
+        if (!prev || prev.id !== activeSession.id) return prev;
+
+        let notes = prev.notes || '';
+        if (!notes.trim()) {
+          notes = '# Live Notes\n\n## Transcript\n\n';
+        }
+        if (!notes.includes('## Transcript')) {
+          notes += '\n## Transcript\n\n';
+        }
+        const newEntry = `**${speaker}:** ${text}\n\n`;
+        return { ...prev, notes: notes + newEntry };
+      });
+    });
+
+    return () => {
+      es.close();
+    };
+  }, [activeSession?.id, activeSession?.session_type]);
 
   // Filter out active session from past activity
   const pastSessions = sessions.filter(s => !activeSession || s.id !== activeSession.id);
@@ -312,7 +342,7 @@ export default function ActivityPage() {
                         value={chatInput}
                         onChange={(e) => setChatInput(e.target.value)}
                         placeholder="Type a message..."
-                        className="flex-1 p-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="flex-1 p-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                       <button
                         type="submit"

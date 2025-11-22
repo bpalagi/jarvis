@@ -481,21 +481,11 @@ async function startWebStack() {
     console.log('NODE_ENV =', process.env.NODE_ENV);
     const isDev = !app.isPackaged;
 
-    const getAvailablePort = () => {
-        return new Promise((resolve, reject) => {
-            const server = require('net').createServer();
-            server.listen(0, (err) => {
-                if (err) reject(err);
-                const port = server.address().port;
-                server.close(() => resolve(port));
-            });
-        });
-    };
+    // Use static ports for easier development and agent access
+    const apiPort = 3001;
+    const frontendPort = 3000;
 
-    const apiPort = await getAvailablePort();
-    const frontendPort = await getAvailablePort();
-
-    console.log(`🔧 Allocated ports: API=${apiPort}, Frontend=${frontendPort}`);
+    console.log(`🔧 Using static ports: API=${apiPort}, Frontend=${frontendPort}`);
 
     process.env.jarvis_API_PORT = apiPort.toString();
     process.env.jarvis_API_URL = `http://localhost:${apiPort}`;

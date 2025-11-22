@@ -1,4 +1,5 @@
 const { BrowserWindow } = require('electron');
+const EventEmitter = require('events');
 const SttService = require('./stt/sttService');
 const summaryService = require('./summary/summaryService');
 const authService = require('../common/services/authService');
@@ -7,8 +8,9 @@ const sttRepository = require('./stt/repositories');
 const summaryRepository = require('./summary/repositories');
 const internalBridge = require('../../bridge/internalBridge');
 
-class ListenService {
+class ListenService extends EventEmitter {
     constructor() {
+        super();
         this.sttService = new SttService();
         this.summaryService = summaryService;
         this.currentSessionId = null;
@@ -104,6 +106,9 @@ class ListenService {
 
         // Update markdown notes
         await this.updateSessionNotes(speaker, text);
+
+        // Emit event for API consumers (Web UI)
+        this.emit('transcription', { speaker, text, sessionId: this.currentSessionId });
     }
 
     async updateSessionNotes(speaker, text) {
@@ -501,6 +506,32 @@ class ListenService {
         null,
         'Error updating Google Search setting:'
     );
+
+    // ── API Adapters ─────────────────────────────────────────────────────────────
+
+    async startTranscription(sessionId, audioSource) {
+        console.log(`[ListenService] API startTranscription request for session ${sessionId}`);
+        // Initialize session (starts STT and DB session)
+        const success = await this.initializeSession();
+        if (!success) {
+            throw new Error('Failed to initialize transcription session');
+        }
+        return { success: true };
+    }
+
+    async stopTranscription(sessionId) {
+        console.log(`[ListenService] API stopTranscription request for session ${sessionId}`);
+        return await this.closeSession();
+    }
+
+    onTranscriptionResult(sessionId, listener) {
+        // In the future we could filter by sessionId, but for now we emit all events
+        this.on('transcription', listener);
+    }
+
+    removeTranscriptionListener(sessionId, listener) {
+        this.removeListener('transcription', listener);
+    }
 }
 
 const listenService = new ListenService();

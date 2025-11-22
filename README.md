@@ -2,10 +2,38 @@
 
 ## Quick Start
 
+### First Time Setup
+
 ```bash
+# Use Node.js version 22
 nvm use 22
+
+# Install dependencies and build
 npm i
 npm run setup
+```
+
+### Running the App
+
+After setup, start the application:
+
+```bash
+npm start
+```
+
+The app will run on:
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:3001
+
+### Development
+
+To rebuild the web frontend after making changes:
+
+```bash
+cd jarvis_web
+npm run build
+cd ..
+npm start
 ```
 
 ## Features
