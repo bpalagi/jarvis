@@ -1,21 +1,22 @@
 const sqliteRepository = require('./sqlite.repository');
-const authService = require('../../services/authService');
+// Lazy load to avoid circular dependency
+const getAuthService = () => require('../../services/authService');
 
 const sessionRepositoryAdapter = {
     getById: (id) => sqliteRepository.getById(id),
-    
+
     create: (type = 'ask') => {
-        const uid = authService.getCurrentUserId();
+        const uid = getAuthService().getCurrentUserId();
         return sqliteRepository.create(uid, type);
     },
-    
+
     getAllByUserId: () => {
-        const uid = authService.getCurrentUserId();
+        const uid = getAuthService().getCurrentUserId();
         return sqliteRepository.getAllByUserId(uid);
     },
 
     updateTitle: (id, title) => sqliteRepository.updateTitle(id, title),
-    
+
     deleteWithRelatedData: (id) => sqliteRepository.deleteWithRelatedData(id),
 
     end: (id) => sqliteRepository.end(id),
@@ -25,24 +26,24 @@ const sessionRepositoryAdapter = {
     touch: (id) => sqliteRepository.touch(id),
 
     getOrCreateActive: (requestedType = 'ask') => {
-        const uid = authService.getCurrentUserId();
+        const uid = getAuthService().getCurrentUserId();
         return sqliteRepository.getOrCreateActive(uid, requestedType);
     },
 
     endAllActiveSessions: () => {
-        const uid = authService.getCurrentUserId();
+        const uid = getAuthService().getCurrentUserId();
         return sqliteRepository.endAllActiveSessions(uid);
     },
 
     searchByTerm: (term) => {
-        const uid = authService.getCurrentUserId();
+        const uid = getAuthService().getCurrentUserId();
         return sqliteRepository.searchByTerm(uid, term);
     },
 
     updateNotes: (id, notes) => sqliteRepository.updateNotes(id, notes),
 
     getActiveSession: () => {
-        const uid = authService.getCurrentUserId();
+        const uid = getAuthService().getCurrentUserId();
         return sqliteRepository.getActiveSession(uid);
     },
 };

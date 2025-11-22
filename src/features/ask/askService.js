@@ -2,18 +2,12 @@ const { BrowserWindow } = require('electron');
 const { createStreamingLLM } = require('../common/ai/factory');
 // Lazy require helper to avoid circular dependency issues
 const getWindowManager = () => require('../../window/windowManager');
-const internalBridge = require('../../bridge/internalBridge');
+// const internalBridge = require('../../bridge/internalBridge');
 const listenService = require('../listen/listenService');
 const settingsService = require('../settings/settingsService');
 const summaryService = require('../listen/summary/summaryService');
 
-const getWindowPool = () => {
-    try {
-        return getWindowManager().windowPool;
-    } catch {
-        return null;
-    }
-};
+// getWindowPool removed
 
 const sessionRepository = require('../common/repositories/session');
 const askRepository = require('./repositories');
@@ -71,11 +65,11 @@ async function captureScreenshot(options = {}) {
                     console.warn('Sharp module failed, falling back to basic image processing:', sharpError.message);
                 }
             }
-            
+
             // Fallback: Return the original image without resizing
             console.log('[AskService] Using fallback image processing (no resize/compression)');
             const base64 = imageBuffer.toString('base64');
-            
+
             lastScreenshot = {
                 base64,
                 width: null, // We don't have metadata without sharp
@@ -141,46 +135,22 @@ class AskService {
     }
 
     _broadcastState() {
-        const askWindow = getWindowPool()?.get('ask');
-        if (askWindow && !askWindow.isDestroyed()) {
-            askWindow.webContents.send('ask:stateUpdate', this.state);
+        try {
+            const websocketService = require('../../services/websocketService');
+            websocketService.broadcast('chat-state', this.state);
+        } catch (e) {
+            console.warn('[AskService] Failed to broadcast state:', e);
         }
     }
 
     async toggleAskButton(inputScreenOnly = false) {
-        const askWindow = getWindowPool()?.get('ask');
-
-        if (inputScreenOnly && askWindow && askWindow.isVisible()) {
-            const conversationHistory = listenService.getConversationHistory();
-            await this.sendMessage('', conversationHistory);
-            return;
-        }
-
-        const hasContent = this.state.isLoading || this.state.isStreaming || (this.state.currentResponse && this.state.currentResponse.length > 0);
-
-        if (askWindow && askWindow.isVisible() && hasContent) {
-            this.state.showTextInput = !this.state.showTextInput;
-            this._broadcastState();
-        } else {
-            if (askWindow && askWindow.isVisible()) {
-                internalBridge.emit('window:requestVisibility', { name: 'ask', visible: false });
-                this.state.isVisible = false;
-            } else {
-                console.log('[AskService] Showing hidden Ask window');
-                internalBridge.emit('window:requestVisibility', { name: 'ask', visible: true });
-                this.state.isVisible = true;
-            }
-            if (this.state.isVisible) {
-                this.state.showTextInput = true;
-                this._broadcastState();
-            }
-        }
+        console.log('[AskService] Toggle Ask Button requested (Headless mode - no action)');
     }
 
     async getGuidance() {
         const conversationHistory = listenService.getConversationHistory();
         const previousAnalysis = summaryService.getPreviousAnalysisResult();
-        
+
         let contextText = this._formatConversationForPrompt(conversationHistory);
         if (previousAnalysis) {
             const analysisText = `Previous Analysis:\n- Main Topic: ${previousAnalysis.topic.header}\n- Key Points: ${previousAnalysis.summary.join(', ')}`;
@@ -193,27 +163,25 @@ class AskService {
         await this._executeLLMStream(fullPrompt, 'guidance');
     }
 
-    async closeAskWindow () {
-            if (this.abortController) {
-                this.abortController.abort('Window closed by user');
-                this.abortController = null;
-            }
-    
-            this.state = {
-                isVisible      : false,
-                isLoading      : false,
-                isStreaming    : false,
-                currentQuestion: '',
-                currentResponse: '',
-                showTextInput  : true,
-            };
-            this._broadcastState();
-    
-            internalBridge.emit('window:requestVisibility', { name: 'ask', visible: false });
-    
-            return { success: true };
+    async closeAskWindow() {
+        if (this.abortController) {
+            this.abortController.abort('Window closed by user');
+            this.abortController = null;
         }
-    
+
+        this.state = {
+            isVisible: false,
+            isLoading: false,
+            isStreaming: false,
+            currentQuestion: '',
+            currentResponse: '',
+            showTextInput: true,
+        };
+        this._broadcastState();
+        // internalBridge.emit('window:requestVisibility', { name: 'ask', visible: false });
+        return { success: true };
+    }
+
 
     _formatConversationForPrompt(conversationTexts) {
         if (!conversationTexts || conversationTexts.length === 0) {
@@ -224,15 +192,15 @@ class AskService {
 
     async sendMessage(userPrompt, conversationHistory = []) {
         const conversationText = this._formatConversationForPrompt(conversationHistory);
-        const fullPrompt = userPrompt 
-            ? `User Request: ${userPrompt.trim()}\n\nConversation History:\n${conversationText}` 
+        const fullPrompt = userPrompt
+            ? `User Request: ${userPrompt.trim()}\n\nConversation History:\n${conversationText}`
             : `Conversation History:\n${conversationText}`;
 
         await this._executeLLMStream(fullPrompt, 'jarvis');
     }
 
     async _executeLLMStream(fullPrompt, promptType) {
-        internalBridge.emit('window:requestVisibility', { name: 'ask', visible: true });
+        // internalBridge.emit('window:requestVisibility', { name: 'ask', visible: true });
         this.state = {
             ...this.state,
             isLoading: true,
@@ -257,7 +225,7 @@ class AskService {
             sessionId = await sessionRepository.getOrCreateActive('ask');
             await askRepository.addAiMessage({ sessionId, role: 'user', content: fullPrompt });
             console.log(`[AskService] DB: Saved user prompt to session ${sessionId}`);
-            
+
             const modelInfo = await modelStateService.getCurrentModelInfo('llm');
             if (!modelInfo || !modelInfo.apiKey) {
                 throw new Error('AI model or API key not configured.');
@@ -288,7 +256,7 @@ class AskService {
                     image_url: { url: `data:image/jpeg;base64,${screenshotBase64}` },
                 });
             }
-            
+
             const streamingLLM = createStreamingLLM(modelInfo.provider, {
                 apiKey: modelInfo.apiKey,
                 model: modelInfo.model,
@@ -298,13 +266,10 @@ class AskService {
 
             try {
                 const response = await streamingLLM.streamChat(messages);
-                const askWin = getWindowPool()?.get('ask');
+                // const askWin = getWindowPool()?.get('ask');
+                // if (!askWin || askWin.isDestroyed()) { ... }
+                // For headless, we assume it's always available via WS
 
-                if (!askWin || askWin.isDestroyed()) {
-                    console.error("[AskService] Ask window is not available to send stream to.");
-                    response.body.getReader().cancel();
-                    return { success: false, error: 'Ask window is not available.' };
-                }
 
                 const reader = response.body.getReader();
                 signal.addEventListener('abort', () => {
@@ -312,34 +277,29 @@ class AskService {
                     reader.cancel(signal.reason).catch(() => { /* Already cancelled */ });
                 });
 
-                await this._processStream(reader, askWin, sessionId, signal);
+                await this._processStream(reader, sessionId, signal);
                 return { success: true };
 
             } catch (multimodalError) {
                 if (screenshotBase64 && this._isMultimodalError(multimodalError)) {
                     console.log(`[AskService] Multimodal request failed, retrying with text-only: ${multimodalError.message}`);
-                    
+
                     const textOnlyMessages = [
                         { role: 'system', content: systemPrompt },
                         { role: 'user', content: fullPrompt }
                     ];
 
                     const fallbackResponse = await streamingLLM.streamChat(textOnlyMessages);
-                    const askWin = getWindowPool()?.get('ask');
-
-                    if (!askWin || askWin.isDestroyed()) {
-                        console.error("[AskService] Ask window is not available for fallback response.");
-                        fallbackResponse.body.getReader().cancel();
-                        return { success: false, error: 'Ask window is not available.' };
-                    }
+                    // const askWin = getWindowPool()?.get('ask');
+                    // if (!askWin || askWin.isDestroyed()) { ... }
 
                     const fallbackReader = fallbackResponse.body.getReader();
                     signal.addEventListener('abort', () => {
                         console.log(`[AskService] Aborting fallback stream reader. Reason: ${signal.reason}`);
-                        fallbackReader.cancel(signal.reason).catch(() => {});
+                        fallbackReader.cancel(signal.reason).catch(() => { });
                     });
 
-                    await this._processStream(fallbackReader, askWin, sessionId, signal);
+                    await this._processStream(fallbackReader, sessionId, signal);
                     return { success: true };
                 } else {
                     throw multimodalError;
@@ -356,17 +316,17 @@ class AskService {
             };
             this._broadcastState();
 
-            const askWin = getWindowPool()?.get('ask');
-            if (askWin && !askWin.isDestroyed()) {
+            try {
+                const websocketService = require('../../services/websocketService');
                 const streamError = error.message || 'Unknown error occurred';
-                askWin.webContents.send('ask-response-stream-error', { error: streamError });
-            }
+                websocketService.broadcast('chat-error', { error: streamError });
+            } catch (e) { }
 
             return { success: false, error: error.message };
         }
     }
 
-    async _processStream(reader, askWin, sessionId, signal) {
+    async _processStream(reader, sessionId, signal) {
         const decoder = new TextDecoder();
         let fullResponse = '';
 
@@ -385,7 +345,7 @@ class AskService {
                     if (line.startsWith('data: ')) {
                         const data = line.substring(6);
                         if (data === '[DONE]') {
-                            return; 
+                            return;
                         }
                         try {
                             const json = JSON.parse(data);
@@ -405,19 +365,20 @@ class AskService {
                 console.log(`[AskService] Stream reading was intentionally cancelled. Reason: ${signal.reason}`);
             } else {
                 console.error('[AskService] Error while processing stream:', streamError);
-                if (askWin && !askWin.isDestroyed()) {
-                    askWin.webContents.send('ask-response-stream-error', { error: streamError.message });
-                }
+                try {
+                    const websocketService = require('../../services/websocketService');
+                    websocketService.broadcast('chat-error', { error: streamError.message });
+                } catch (e) { }
             }
         } finally {
             this.state.isStreaming = false;
             this.state.currentResponse = fullResponse;
             this._broadcastState();
             if (fullResponse) {
-                 try {
+                try {
                     await askRepository.addAiMessage({ sessionId, role: 'assistant', content: fullResponse });
                     console.log(`[AskService] DB: Saved partial or full assistant response to session ${sessionId} after stream ended.`);
-                } catch(dbError) {
+                } catch (dbError) {
                     console.error("[AskService] DB: Failed to save assistant response after stream ended:", dbError);
                 }
             }

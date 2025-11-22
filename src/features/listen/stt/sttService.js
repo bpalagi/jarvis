@@ -26,13 +26,13 @@ class SttService {
         this.theirSttSession = null;
         this.myCurrentUtterance = '';
         this.theirCurrentUtterance = '';
-        
+
         // Turn-completion debouncing
         this.myCompletionBuffer = '';
         this.theirCompletionBuffer = '';
         this.myCompletionTimer = null;
         this.theirCompletionTimer = null;
-        
+
         // System audio capture
         this.systemAudioProc = null;
 
@@ -44,7 +44,7 @@ class SttService {
         this.onTranscriptionComplete = null;
         this.onStatusUpdate = null;
 
-        this.modelInfo = null; 
+        this.modelInfo = null;
     }
 
     setCallbacks({ onTranscriptionComplete, onStatusUpdate }) {
@@ -53,12 +53,19 @@ class SttService {
     }
 
     sendToRenderer(channel, data) {
-        // Listen 관련 이벤트는 Listen 윈도우에만 전송 (Ask 윈도우 충돌 방지)
-        const { windowPool } = require('../../../window/windowManager');
-        const listenWindow = windowPool?.get('listen');
-        
-        if (listenWindow && !listenWindow.isDestroyed()) {
-            listenWindow.webContents.send(channel, data);
+        try {
+            const websocketService = require('../../../services/websocketService');
+            // Map stt-update to listen-data for frontend consistency
+            if (channel === 'stt-update') {
+                websocketService.broadcast('listen-data', {
+                    type: 'transcript',
+                    ...data
+                });
+            } else {
+                websocketService.broadcast(channel, data);
+            }
+        } catch (e) {
+            console.warn('[SttService] Failed to broadcast to WebSocket:', e);
         }
     }
 
@@ -81,7 +88,7 @@ class SttService {
         if (this.onTranscriptionComplete) {
             this.onTranscriptionComplete('Me', finalText);
         }
-        
+
         // Send to renderer as final
         this.sendToRenderer('stt-update', {
             speaker: 'Me',
@@ -94,7 +101,7 @@ class SttService {
         this.myCompletionBuffer = '';
         this.myCompletionTimer = null;
         this.myCurrentUtterance = '';
-        
+
         if (this.onStatusUpdate) {
             this.onStatusUpdate('Listening...');
         }
@@ -103,12 +110,12 @@ class SttService {
     flushTheirCompletion() {
         const finalText = (this.theirCompletionBuffer + this.theirCurrentUtterance).trim();
         if (!this.modelInfo || !finalText) return;
-        
+
         // Notify completion callback
         if (this.onTranscriptionComplete) {
             this.onTranscriptionComplete('Them', finalText);
         }
-        
+
         // Send to renderer as final
         this.sendToRenderer('stt-update', {
             speaker: 'Them',
@@ -121,7 +128,7 @@ class SttService {
         this.theirCompletionBuffer = '';
         this.theirCompletionTimer = null;
         this.theirCurrentUtterance = '';
-        
+
         if (this.onStatusUpdate) {
             this.onStatusUpdate('Listening...');
         }
@@ -164,7 +171,7 @@ class SttService {
                 console.log('[SttService] Ignoring message - session already closed');
                 return;
             }
-            
+
             if (this.modelInfo.provider === 'gemini') {
                 if (!message.serverContent?.modelTurn) {
                     console.log('[Gemini STT - Me]', JSON.stringify(message, null, 2));
@@ -177,17 +184,17 @@ class SttService {
                     }
                     return;
                 }
-            
+
                 const transcription = message.serverContent?.inputTranscription;
                 if (!transcription || !transcription.text) return;
-                
+
                 const textChunk = transcription.text;
                 if (!textChunk.trim() || textChunk.trim() === '<noise>') {
                     return; // 1. Ignore whitespace-only chunks or noise
                 }
-            
+
                 this.debounceMyCompletion(textChunk);
-                
+
                 this.sendToRenderer('stt-update', {
                     speaker: 'Me',
                     text: this.myCompletionBuffer,
@@ -195,7 +202,7 @@ class SttService {
                     isFinal: false,
                     timestamp: Date.now(),
                 });
-                
+
             } else {
                 const type = message.type;
                 const text = message.transcript || message.delta || (message.alternatives && message.alternatives[0]?.transcript) || '';
@@ -235,7 +242,7 @@ class SttService {
                 console.log('[SttService] Ignoring message - session already closed');
                 return;
             }
-            
+
             if (this.modelInfo.provider === 'gemini') {
                 if (!message.serverContent?.modelTurn) {
                     console.log('[Gemini STT - Them]', JSON.stringify(message, null, 2));
@@ -248,7 +255,7 @@ class SttService {
                     }
                     return;
                 }
-            
+
                 const transcription = message.serverContent?.inputTranscription;
                 if (!transcription || !transcription.text) return;
 
@@ -258,7 +265,7 @@ class SttService {
                 }
 
                 this.debounceTheirCompletion(textChunk);
-                
+
                 this.sendToRenderer('stt-update', {
                     speaker: 'Them',
                     text: this.theirCompletionBuffer,
@@ -292,7 +299,7 @@ class SttService {
                     }
                 }
             }
-            
+
             if (message.error) {
                 console.error('[Them] STT Session Error:', message.error);
             }
@@ -306,7 +313,7 @@ class SttService {
                 onclose: event => console.log('My STT session closed:', event.reason),
             },
         };
-        
+
         const theirSttConfig = {
             language: effectiveLanguage,
             callbacks: {
@@ -315,7 +322,7 @@ class SttService {
                 onclose: event => console.log('Their STT session closed:', event.reason),
             },
         };
-        
+
         const sttOptions = {
             apiKey: this.modelInfo.apiKey,
             language: effectiveLanguage,
@@ -386,7 +393,7 @@ class SttService {
     async sendMicAudioContent(data, mimeType) {
         // const provider = await this.getAiProvider();
         // const isGemini = provider === 'gemini';
-        
+
         if (!this.mySttSession) {
             throw new Error('User STT session not active');
         }
@@ -618,7 +625,7 @@ class SttService {
         this.theirCurrentUtterance = '';
         this.myCompletionBuffer = '';
         this.theirCompletionBuffer = '';
-        this.modelInfo = null; 
+        this.modelInfo = null;
     }
 }
 

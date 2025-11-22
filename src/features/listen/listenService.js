@@ -45,11 +45,19 @@ class ListenService extends EventEmitter {
     }
 
     sendToRenderer(channel, data) {
-        const { windowPool } = require('../../window/windowManager');
-        const listenWindow = windowPool?.get('listen');
+        // Legacy support: emit to eventBridge so index.js can pick it up and broadcast via WebSocket
+        // This decouples listenService from websocketService directly
+        const internalBridge = require('../../bridge/internalBridge');
+        // internalBridge is likely not what we want here if it was for window comms.
+        // Let's use a global event emitter or require the websocket service if we want direct access.
+        // But to keep it clean, let's use the eventBridge passed during init or a singleton.
 
-        if (listenWindow && !listenWindow.isDestroyed()) {
-            listenWindow.webContents.send(channel, data);
+        // Ideally we should inject the broadcaster. For now, let's require the singleton websocketService.
+        try {
+            const websocketService = require('../../services/websocketService');
+            websocketService.broadcast(channel, data);
+        } catch (e) {
+            console.warn('[ListenService] Failed to broadcast to WebSocket:', e);
         }
     }
 
@@ -59,38 +67,28 @@ class ListenService extends EventEmitter {
     }
 
     async handleListenRequest(listenButtonText) {
-        const { windowPool } = require('../../window/windowManager');
-        const listenWindow = windowPool.get('listen');
-        const header = windowPool.get('header');
+        // const { windowPool } = require('../../window/windowManager');
+        // const listenWindow = windowPool.get('listen');
+        // const header = windowPool.get('header');
 
         try {
             switch (listenButtonText) {
                 case 'Listen':
                     console.log('[ListenService] changeSession to "Listen"');
-                    internalBridge.emit('window:requestVisibility', { name: 'listen', visible: true });
                     await this.initializeSession();
-                    if (listenWindow && !listenWindow.isDestroyed()) {
-                        listenWindow.webContents.send('session-state-changed', { isActive: true });
-                    }
                     break;
 
                 case 'Stop':
                     console.log('[ListenService] changeSession to "Stop"');
                     await this.closeSession();
-                    if (listenWindow && !listenWindow.isDestroyed()) {
-                        listenWindow.webContents.send('session-state-changed', { isActive: false });
-                    }
                     break;
 
                 default:
                     throw new Error(`[ListenService] unknown listenButtonText: ${listenButtonText}`);
             }
 
-            header.webContents.send('listen:changeSessionResult', { success: true });
-
         } catch (error) {
             console.error('[ListenService] error in handleListenRequest:', error);
-            header.webContents.send('listen:changeSessionResult', { success: false });
             throw error;
         }
     }
@@ -137,6 +135,8 @@ class ListenService extends EventEmitter {
 
             // Update session with notes
             await sessionRepository.updateNotes(this.currentSessionId, notes);
+
+            this.sendToRenderer('notes-update', { sessionId: this.currentSessionId, notes });
 
             console.log(`[ListenService] Appended transcription to session notes for ${this.currentSessionId}`);
         } catch (error) {
@@ -213,6 +213,8 @@ class ListenService extends EventEmitter {
 
             // Update session with notes
             await sessionRepository.updateNotes(this.currentSessionId, notes);
+
+            this.sendToRenderer('notes-update', { sessionId: this.currentSessionId, notes });
 
             console.log(`[ListenService] Updated summary section in notes for ${this.currentSessionId}`);
         } catch (error) {
@@ -361,6 +363,17 @@ class ListenService extends EventEmitter {
             if (!sttReady) throw new Error('STT init failed after retries');
             /* ------------------------------------------- */
 
+            // Start macOS audio capture if on macOS
+            if (process.platform === 'darwin') {
+                try {
+                    await this.startMacOSAudioCapture();
+                    console.log('✅ macOS audio capture started');
+                } catch (audioErr) {
+                    console.warn('[ListenService] Failed to start macOS audio capture:', audioErr.message);
+                    // Continue anyway - user can manually start if needed
+                }
+            }
+
             console.log('✅ Listen service initialized successfully.');
 
             this.sendToRenderer('update-status', 'Connected. Ready to listen.');
@@ -399,7 +412,8 @@ class ListenService extends EventEmitter {
     async closeSession() {
         try {
             this.sendToRenderer('change-listen-capture-state', { status: "stop" });
-            internalBridge.emit('window:requestVisibility', { name: 'listen', visible: false }); // Added this line
+            this.sendToRenderer('change-listen-capture-state', { status: "stop" });
+            // internalBridge.emit('window:requestVisibility', { name: 'listen', visible: false }); // Removed for headless
             // Close STT sessions
             await this.sttService.closeSessions();
 
@@ -437,21 +451,18 @@ class ListenService extends EventEmitter {
     }
 
     async toggleListenSessionFromShortcut() {
-        const { windowPool } = require('../../window/windowManager');
-        const header = windowPool.get('header');
         try {
             if (this.sttService.isSessionActive()) {
                 console.log('[ListenService] Shortcut: Session active, stopping.');
                 await this.closeSession();
             } else {
                 console.log('[ListenService] Shortcut: Session inactive, starting.');
-                internalBridge.emit('window:requestVisibility', { name: 'listen', visible: true }); // Ensure window is visible when starting
                 await this.initializeSession();
             }
-            header.webContents.send('listen:changeSessionResult', { success: true });
+            // Broadcast status update via WebSocket is handled by initializeSession/closeSession
         } catch (error) {
             console.error('[ListenService] Shortcut toggle failed:', error);
-            header.webContents.send('listen:changeSessionResult', { success: false, error: error.message });
+            throw error;
         }
     }
 

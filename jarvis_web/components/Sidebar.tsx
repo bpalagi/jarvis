@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useState, createElement, useEffect, useMemo, useCallback, memo } from 'react';
-import { Search, Activity, HelpCircle, Download, ChevronDown, User, Shield, Database, CreditCard, LogOut, LucideIcon } from 'lucide-react';
+import { Search, Activity, HelpCircle, Download, ChevronDown, User, Shield, Database, CreditCard, LogOut, LucideIcon, MessageSquare } from 'lucide-react';
 import { checkApiKeyStatus } from '@/utils/api';
 import { useAuth } from '@/utils/auth';
 
@@ -173,6 +173,20 @@ const SidebarComponent = ({ isCollapsed, onToggle, onSearchClick }: SidebarProps
     const navigation = useMemo<NavigationItem[]>(
         () => [
             {
+                name: 'Live Session',
+                href: '/live',
+                icon: Activity,
+                isLucide: true,
+                ariaLabel: 'Go to live session',
+            },
+            {
+                name: 'Chat',
+                href: '/chat',
+                icon: MessageSquare,
+                isLucide: true,
+                ariaLabel: 'Go to chat',
+            },
+            {
                 name: 'Search',
                 action: onSearchClick,
                 icon: '/search.svg',
@@ -199,7 +213,7 @@ const SidebarComponent = ({ isCollapsed, onToggle, onSearchClick }: SidebarProps
         []
     );
 
-    
+
 
     const toggleSidebar = useCallback(() => {
         onToggle(!isCollapsed);
@@ -313,11 +327,10 @@ const SidebarComponent = ({ isCollapsed, onToggle, onSearchClick }: SidebarProps
                                             className={`
                                   group flex items-center rounded-lg px-[12px] py-[8px] text-[13px] gap-x-[9px]
                       focus:outline-none
-                                  ${
-                                      pathname === subItem.href
-                                          ? 'bg-subtle-active-bg text-[#282828]'
-                                          : 'text-[#282828] hover:text-[#282828] hover:bg-[#f7f7f7]'
-                                  }
+                                  ${pathname === subItem.href
+                                                    ? 'bg-subtle-active-bg text-[#282828]'
+                                                    : 'text-[#282828] hover:text-[#282828] hover:bg-[#f7f7f7]'
+                                                }
                       transition-colors duration-${ANIMATION_DURATION.COLOR_TRANSITION} ease-out
                                 `}
                                             style={{
@@ -409,7 +422,7 @@ const SidebarComponent = ({ isCollapsed, onToggle, onSearchClick }: SidebarProps
         return userInfo?.display_name ? userInfo.display_name.charAt(0).toUpperCase() : 'G';
     }, [userInfo]);
 
-    
+
 
     return (
         <aside
@@ -426,9 +439,8 @@ const SidebarComponent = ({ isCollapsed, onToggle, onSearchClick }: SidebarProps
                         <button
                             onClick={toggleSidebar}
                             onKeyDown={e => handleKeyDown(e, toggleSidebar)}
-                            className={`${
-                                isCollapsed ? '' : ''
-                            } "absolute inset-0 flex items-center justify-center text-gray-500 hover:text-gray-800 rounded-md opacity-0 scale-90 group-hover:opacity-100 group-hover:scale-100 transition-all duration-300 ease-out focus:outline-none`}
+                            className={`${isCollapsed ? '' : ''
+                                } "absolute inset-0 flex items-center justify-center text-gray-500 hover:text-gray-800 rounded-md opacity-0 scale-90 group-hover:opacity-100 group-hover:scale-100 transition-all duration-300 ease-out focus:outline-none`}
                             aria-label="Open sidebar"
                         >
                             <Image src="/unfold.svg" alt="Open" width={18} height={18} className="h-4.5 w-4.5" />
@@ -448,9 +460,8 @@ const SidebarComponent = ({ isCollapsed, onToggle, onSearchClick }: SidebarProps
                         <button
                             onClick={toggleSidebar}
                             onKeyDown={e => handleKeyDown(e, toggleSidebar)}
-                            className={`${
-                                isCollapsed ? '' : ''
-                            } text-gray-500 hover:text-gray-800 p-1 rounded-[4px] hover:bg-[#f7f7f7] h-6 w-6 transition-colors focus:outline-none`}
+                            className={`${isCollapsed ? '' : ''
+                                } text-gray-500 hover:text-gray-800 p-1 rounded-[4px] hover:bg-[#f7f7f7] h-6 w-6 transition-colors focus:outline-none`}
                             aria-label="Close sidebar"
                         >
                             <Image src="/unfold.svg" alt="Close" width={16} height={16} className="transform rotate-180" />
@@ -471,9 +482,8 @@ const SidebarComponent = ({ isCollapsed, onToggle, onSearchClick }: SidebarProps
                 <button
                     onClick={toggleSidebar}
                     onKeyDown={e => handleKeyDown(e, toggleSidebar)}
-                    className={`${
-                        isCollapsed ? '' : 'opacity-0'
-                    } "absolute inset-0 flex items-center justify-center w-full h-[36px] mb-[8px] rounded-[20px] flex justify-center items-center text-gray-500 hover:text-gray-800 rounded-md scale-90 group-hover:opacity-100 group-hover:scale-100 transition-all duration-300 ease-out focus:outline-none`}
+                    className={`${isCollapsed ? '' : 'opacity-0'
+                        } "absolute inset-0 flex items-center justify-center w-full h-[36px] mb-[8px] rounded-[20px] flex justify-center items-center text-gray-500 hover:text-gray-800 rounded-md scale-90 group-hover:opacity-100 group-hover:scale-100 transition-all duration-300 ease-out focus:outline-none`}
                     aria-label="Open sidebar"
                 >
                     <div className="w-[36px] h-[36px] flex items-center justify-center bg-[#f7f7f7] rounded-[20px]">
@@ -489,7 +499,7 @@ const SidebarComponent = ({ isCollapsed, onToggle, onSearchClick }: SidebarProps
                     </div>
                 )}
 
-                
+
 
                 <div className="mt-[0px] flex items-center w-full h-[1px] px-[4px] mt-[8px] mb-[8px]">
                     <div className="w-full h-[1px] bg-[#d9d9d9]"></div>
