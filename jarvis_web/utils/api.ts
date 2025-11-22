@@ -60,10 +60,10 @@ export interface PersonalizePrompt {
 }
 
 export interface SessionDetails {
-    session: Session;
-    transcripts: Transcript[];
-    ai_messages: AiMessage[];
-    summary: Summary | null;
+  session: Session;
+  transcripts: Transcript[];
+  ai_messages: AiMessage[];
+  summary: Summary | null;
 }
 
 
@@ -90,7 +90,7 @@ let initializationPromise: Promise<void> | null = null;
 
 const initializeApiUrl = async () => {
   if (apiUrlInitialized) return;
-  
+
   // Electron IPC 관련 코드를 모두 제거하고 runtime-config.json 또는 fallback에만 의존합니다.
   const runtimeUrl = await loadRuntimeConfig();
   if (runtimeUrl) {
@@ -111,7 +111,7 @@ const userInfoListeners: Array<(userInfo: UserProfile | null) => void> = [];
 
 export const getUserInfo = (): UserProfile | null => {
   if (typeof window === 'undefined') return null;
-  
+
   const storedUserInfo = localStorage.getItem('jarvis_user');
   if (storedUserInfo) {
     try {
@@ -126,23 +126,23 @@ export const getUserInfo = (): UserProfile | null => {
 
 export const setUserInfo = (userInfo: UserProfile | null, skipEvents: boolean = false) => {
   if (typeof window === 'undefined') return;
-  
+
   if (userInfo) {
     localStorage.setItem('jarvis_user', JSON.stringify(userInfo));
   } else {
     localStorage.removeItem('jarvis_user');
   }
-  
+
   if (!skipEvents) {
     userInfoListeners.forEach(listener => listener(userInfo));
-    
+
     window.dispatchEvent(new Event('userInfoChanged'));
   }
 };
 
 export const onUserInfoChange = (listener: (userInfo: UserProfile | null) => void) => {
   userInfoListeners.push(listener);
-  
+
   return () => {
     const index = userInfoListeners.indexOf(listener);
     if (index > -1) {
@@ -155,12 +155,12 @@ export const getApiHeaders = (): HeadersInit => {
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
   };
-  
+
   const userInfo = getUserInfo();
   if (userInfo?.uid) {
     headers['X-User-ID'] = userInfo.uid;
   }
-  
+
   return headers;
 };
 
@@ -169,11 +169,11 @@ export const apiCall = async (path: string, options: RequestInit = {}) => {
   if (!apiUrlInitialized && initializationPromise) {
     await initializationPromise;
   }
-  
+
   if (!apiUrlInitialized) {
     await initializeApiUrl();
   }
-  
+
   const url = `${API_ORIGIN}${path}`;
   console.log('🌐 apiCall (Local Mode):', {
     path,
@@ -182,7 +182,7 @@ export const apiCall = async (path: string, options: RequestInit = {}) => {
     initialized: apiUrlInitialized,
     timestamp: new Date().toISOString()
   });
-  
+
   const defaultOpts: RequestInit = {
     headers: {
       'Content-Type': 'application/json',
@@ -249,6 +249,15 @@ export const updateSessionNotes = async (sessionId: string, notes: string): Prom
   if (!response.ok) throw new Error('Failed to update session notes');
 };
 
+export const chatWithAssistant = async (sessionId: string, message: string): Promise<{ message: string, noteUpdate?: string }> => {
+  const response = await apiCall(`/api/conversations/${sessionId}/chat`, {
+    method: 'POST',
+    body: JSON.stringify({ message }),
+  });
+  if (!response.ok) throw new Error('Failed to chat with assistant');
+  return response.json();
+};
+
 export const getUserProfile = async (): Promise<UserProfile> => {
   const response = await apiCall(`/api/user/profile`, { method: 'GET' });
   if (!response.ok) throw new Error('Failed to fetch user profile');
@@ -257,16 +266,16 @@ export const getUserProfile = async (): Promise<UserProfile> => {
 
 export const updateUserProfile = async (data: { displayName: string }): Promise<void> => {
   const response = await apiCall(`/api/user/profile`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
+    method: 'PUT',
+    body: JSON.stringify(data),
   });
   if (!response.ok) throw new Error('Failed to update user profile');
 };
 
 export const findOrCreateUser = async (user: UserProfile): Promise<UserProfile> => {
   const response = await apiCall(`/api/user/find-or-create`, {
-      method: 'POST',
-      body: JSON.stringify(user),
+    method: 'POST',
+    body: JSON.stringify(user),
   });
   if (!response.ok) throw new Error('Failed to find or create user');
   return response.json();
@@ -274,8 +283,8 @@ export const findOrCreateUser = async (user: UserProfile): Promise<UserProfile> 
 
 export const saveApiKey = async (apiKey: string): Promise<void> => {
   const response = await apiCall(`/api/user/api-key`, {
-      method: 'POST',
-      body: JSON.stringify({ apiKey }),
+    method: 'POST',
+    body: JSON.stringify({ apiKey }),
   });
   if (!response.ok) throw new Error('Failed to save API key');
 };
@@ -299,8 +308,8 @@ export const getPersonalizePrompt = async (): Promise<PersonalizePrompt> => {
 
 export const updatePersonalizePrompt = async (data: { prompt: string }): Promise<void> => {
   const response = await apiCall(`/api/personalize`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
+    method: 'PUT',
+    body: JSON.stringify(data),
   });
   if (!response.ok) {
     const errorText = await response.text();
@@ -309,9 +318,9 @@ export const updatePersonalizePrompt = async (data: { prompt: string }): Promise
 };
 
 export interface BatchData {
-    profile?: UserProfile;
-    personalize?: PersonalizePrompt;
-    sessions?: Session[];
+  profile?: UserProfile;
+  personalize?: PersonalizePrompt;
+  sessions?: Session[];
 }
 
 export const getBatchData = async (includes: ('profile' | 'personalize' | 'sessions')[]): Promise<BatchData> => {
@@ -322,9 +331,9 @@ export const getBatchData = async (includes: ('profile' | 'personalize' | 'sessi
 
 export const logout = async () => {
   setUserInfo(null);
-  
+
   localStorage.removeItem('openai_api_key');
   localStorage.removeItem('user_info');
-  
+
   window.location.href = '/login';
 }; 

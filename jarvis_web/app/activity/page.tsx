@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRedirectIfNotAuth } from '@/utils/auth'
+import NoteEditor from '@/components/NoteEditor'
 import {
   UserProfile,
   Session,
@@ -10,7 +11,13 @@ import {
   deleteSession,
   getActiveSession,
   updateSessionNotes,
+  chatWithAssistant,
 } from '@/utils/api'
+
+interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
 
 export default function ActivityPage() {
   const userInfo = useRedirectIfNotAuth() as UserProfile | null;
@@ -18,9 +25,11 @@ export default function ActivityPage() {
   const [activeSession, setActiveSession] = useState<Session | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [deletingId, setDeletingId] = useState<string | null>(null)
-  const [isEditingNotes, setIsEditingNotes] = useState(false)
-  const [editedNotes, setEditedNotes] = useState('')
-  const [isSavingNotes, setIsSavingNotes] = useState(false)
+
+  // Chat State
+  const [chatInput, setChatInput] = useState('')
+  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([])
+  const [isChatLoading, setIsChatLoading] = useState(false)
 
   const fetchSessions = async () => {
     try {
@@ -37,9 +46,6 @@ export default function ActivityPage() {
     try {
       const active = await getActiveSession();
       setActiveSession(active);
-      if (active?.notes) {
-        setEditedNotes(active.notes);
-      }
     } catch (error) {
       console.error('Failed to fetch active session:', error);
     }
@@ -48,7 +54,7 @@ export default function ActivityPage() {
   useEffect(() => {
     fetchSessions()
     fetchActiveSession()
-    
+
     // Poll for active session updates every 5 seconds
     const interval = setInterval(fetchActiveSession, 5000);
     return () => clearInterval(interval);
@@ -57,21 +63,30 @@ export default function ActivityPage() {
   // Filter out active session from past activity
   const pastSessions = sessions.filter(s => !activeSession || s.id !== activeSession.id);
 
-  const handleSaveNotes = async () => {
-    if (!activeSession) return;
-    
-    setIsSavingNotes(true);
+  const handleChatSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeSession || !chatInput.trim()) return;
+
+    const userMsg = chatInput;
+    setChatInput('');
+    setChatHistory(prev => [...prev, { role: 'user', content: userMsg }]);
+    setIsChatLoading(true);
+
     try {
-      await updateSessionNotes(activeSession.id, editedNotes);
-      setActiveSession({ ...activeSession, notes: editedNotes });
-      setIsEditingNotes(false);
+      const result = await chatWithAssistant(activeSession.id, userMsg);
+
+      setChatHistory(prev => [...prev, { role: 'assistant', content: result.message }]);
+
+      if (result.noteUpdate) {
+        setActiveSession(prev => prev ? { ...prev, notes: result.noteUpdate } : null);
+      }
     } catch (error) {
-      alert('Failed to save notes');
-      console.error(error);
+      console.error('Chat failed:', error);
+      setChatHistory(prev => [...prev, { role: 'assistant', content: 'Sorry, I encountered an error.' }]);
     } finally {
-      setIsSavingNotes(false);
+      setIsChatLoading(false);
     }
-  }
+  };
 
   if (!userInfo) {
     return (
@@ -114,10 +129,10 @@ export default function ActivityPage() {
     const elements: JSX.Element[] = [];
     let inList = false;
     let inOrderedList = false;
-    
+
     lines.forEach((line, i) => {
       const trimmedLine = line.trim();
-      
+
       // Headers
       if (trimmedLine.startsWith('# ')) {
         if (inList || inOrderedList) {
@@ -210,7 +225,7 @@ export default function ActivityPage() {
         text = text.replace(/\*(.+?)\*/g, '<em>$1</em>');
         // Inline code: `code`
         text = text.replace(/`(.+?)`/g, '<code class="bg-gray-100 px-1 rounded text-sm">$1</code>');
-        
+
         elements.push(
           <p key={i} className="my-1 text-gray-700" dangerouslySetInnerHTML={{ __html: text }} />
         );
@@ -224,7 +239,7 @@ export default function ActivityPage() {
         elements.push(<div key={i} className="h-2" />);
       }
     });
-    
+
     return elements;
   }
 
@@ -251,66 +266,65 @@ export default function ActivityPage() {
                     Started {new Date(activeSession.started_at * 1000).toLocaleString()}
                   </p>
                 </div>
-                <div className="flex gap-2">
-                  {!isEditingNotes && (
-                    <button
-                      onClick={() => {
-                        setIsEditingNotes(true);
-                        setEditedNotes(activeSession.notes || '');
-                      }}
-                      className="px-3 py-1 rounded text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors"
-                    >
-                      Edit Notes
-                    </button>
-                  )}
-                  <button
-                    onClick={() => handleDelete(activeSession.id)}
-                    disabled={deletingId === activeSession.id}
-                    className={`px-3 py-1 rounded text-sm font-medium border border-red-200 text-red-700 bg-red-50 hover:bg-red-100 transition-colors ${deletingId === activeSession.id ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  >
-                    {deletingId === activeSession.id ? 'Deleting...' : 'End Session'}
-                  </button>
-                </div>
               </div>
 
-              {isEditingNotes ? (
-                <div className="space-y-4">
-                  <textarea
-                    value={editedNotes}
-                    onChange={(e) => setEditedNotes(e.target.value)}
-                    className="w-full h-96 p-4 border border-gray-300 rounded-lg font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Edit your notes in Markdown format..."
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-white rounded-lg p-4">
+                  <h3 className="text-sm font-semibold text-gray-700 mb-2">Notes</h3>
+                  <NoteEditor
+                    initialNotes={activeSession.notes || ''}
+                    sessionId={activeSession.id}
+                    placeholder="Start taking notes..."
+                    className="h-96"
                   />
-                  <div className="flex gap-2">
-                    <button
-                      onClick={handleSaveNotes}
-                      disabled={isSavingNotes}
-                      className={`px-4 py-2 rounded text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors ${isSavingNotes ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    >
-                      {isSavingNotes ? 'Saving...' : 'Save Notes'}
-                    </button>
-                    <button
-                      onClick={() => {
-                        setIsEditingNotes(false);
-                        setEditedNotes(activeSession.notes || '');
-                      }}
-                      className="px-4 py-2 rounded text-sm font-medium border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 transition-colors"
-                    >
-                      Cancel
-                    </button>
+                </div>
+                <div className="bg-white rounded-lg p-4">
+                  <h3 className="text-sm font-semibold text-gray-700 mb-2">Live Assistant</h3>
+                  <div className="h-96 flex flex-col border border-gray-200 rounded-lg overflow-hidden">
+                    <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                      {chatHistory.length === 0 ? (
+                        <p className="text-gray-400 text-sm text-center italic mt-10">
+                          Ask me to help with notes, summarize, or add todos...
+                        </p>
+                      ) : (
+                        chatHistory.map((msg, idx) => (
+                          <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                            <div className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${msg.role === 'user'
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-gray-100 text-gray-800'
+                              }`}>
+                              {msg.content}
+                            </div>
+                          </div>
+                        ))
+                      )}
+                      {isChatLoading && (
+                        <div className="flex justify-start">
+                          <div className="bg-gray-100 rounded-lg px-3 py-2 text-sm text-gray-500">
+                            Thinking...
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <form onSubmit={handleChatSubmit} className="border-t border-gray-200 p-2 bg-gray-50 flex gap-2">
+                      <input
+                        type="text"
+                        value={chatInput}
+                        onChange={(e) => setChatInput(e.target.value)}
+                        placeholder="Type a message..."
+                        className="flex-1 p-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                      <button
+                        type="submit"
+                        disabled={isChatLoading || !chatInput.trim()}
+                        className="bg-blue-600 text-white px-3 py-1 rounded text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+                      >
+                        Send
+                      </button>
+                    </form>
                   </div>
                 </div>
-              ) : (
-                <div className="bg-white rounded-lg p-4 prose prose-sm max-w-none">
-                  {activeSession.notes ? (
-                    <div className="text-gray-800">
-                      {renderMarkdown(activeSession.notes)}
-                    </div>
-                  ) : (
-                    <p className="text-gray-500 italic">No notes yet. Notes will appear here as the session progresses.</p>
-                  )}
-                </div>
-              )}
+              </div>
             </div>
           </div>
         )}

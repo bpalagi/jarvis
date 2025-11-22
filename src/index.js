@@ -59,17 +59,17 @@ function setupProtocolHandling() {
     // Handle protocol URLs on Windows/Linux
     app.on('second-instance', (event, commandLine, workingDirectory) => {
         console.log('[Protocol] Second instance command line:', commandLine);
-        
+
         focusMainWindow();
-        
+
         let protocolUrl = null;
-        
+
         // Search through all command line arguments for a valid protocol URL
         for (const arg of commandLine) {
             if (arg && typeof arg === 'string' && arg.startsWith('jarvis://')) {
                 // Clean up the URL by removing problematic characters
                 const cleanUrl = arg.replace(/[\\₩]/g, '');
-                
+
                 // Additional validation for Windows
                 if (process.platform === 'win32') {
                     // On Windows, ensure the URL doesn't contain file path indicators
@@ -83,7 +83,7 @@ function setupProtocolHandling() {
                 }
             }
         }
-        
+
         if (protocolUrl) {
             console.log('[Protocol] Valid URL found from second instance:', protocolUrl);
             handleCustomUrl(protocolUrl);
@@ -97,7 +97,7 @@ function setupProtocolHandling() {
     app.on('open-url', (event, url) => {
         event.preventDefault();
         console.log('[Protocol] Received URL via open-url:', url);
-        
+
         if (!url || !url.startsWith('jarvis://')) {
             console.warn('[Protocol] Invalid URL format:', url);
             return;
@@ -122,7 +122,7 @@ function focusMainWindow() {
             return true;
         }
     }
-    
+
     // Fallback: focus any available window
     const windows = BrowserWindow.getAllWindows();
     if (windows.length > 0) {
@@ -133,7 +133,7 @@ function focusMainWindow() {
             return true;
         }
     }
-    
+
     return false;
 }
 
@@ -142,7 +142,7 @@ if (process.platform === 'win32') {
         if (arg && typeof arg === 'string' && arg.startsWith('jarvis://')) {
             // Clean up the URL by removing problematic characters (korean characters issue...)
             const cleanUrl = arg.replace(/[\\₩]/g, '');
-            
+
             if (!cleanUrl.includes(':') || cleanUrl.indexOf('://') === cleanUrl.lastIndexOf(':')) {
                 console.log('[Protocol] Found protocol URL in initial arguments:', cleanUrl);
                 pendingDeepLinkUrl = cleanUrl;
@@ -150,7 +150,7 @@ if (process.platform === 'win32') {
             }
         }
     }
-    
+
     console.log('[Protocol] Initial process.argv:', process.argv);
 }
 
@@ -177,16 +177,16 @@ app.whenReady().then(async () => {
     });
 
     // Initialize core services
-    
-    
+
+
     try {
         await databaseInitializer.initialize();
         console.log('>>> [index.js] Database initialized successfully');
-        
+
         // Clean up zombie sessions from previous runs first - MOVED TO authService
         // sessionRepository.endAllActiveSessions();
 
-        
+
 
         //////// after_modelStateService ////////
         await modelStateService.initialize();
@@ -199,7 +199,7 @@ app.whenReady().then(async () => {
         // Start web server and create windows ONLY after all initializations are successful
         WEB_PORT = await startWebStack();
         console.log('Web front-end listening on', WEB_PORT);
-        
+
         createWindows();
 
     } catch (err) {
@@ -211,7 +211,7 @@ app.whenReady().then(async () => {
         );
     }
 
-    
+
 
     // Process any pending deep link after everything is initialized
     if (pendingDeepLinkUrl) {
@@ -227,20 +227,20 @@ app.on('before-quit', async (event) => {
         console.log('[Shutdown] 🔄 Shutdown already in progress, allowing quit...');
         return;
     }
-    
+
     console.log('[Shutdown] App is about to quit. Starting graceful shutdown...');
-    
+
     // Set shutdown flag to prevent infinite loop
     isShuttingDown = true;
-    
+
     // Prevent immediate quit to allow graceful shutdown
     event.preventDefault();
-    
+
     try {
         // 1. Stop audio capture first (immediate)
         await listenService.closeSession();
         console.log('[Shutdown] Audio capture stopped');
-        
+
         // 2. End all active sessions (database operations) - with error handling
         try {
             await sessionRepository.endAllActiveSessions();
@@ -248,7 +248,7 @@ app.on('before-quit', async (event) => {
         } catch (dbError) {
             console.warn('[Shutdown] Could not end active sessions (database may be closed):', dbError.message);
         }
-        
+
         // 3. Close database connections (final cleanup)
         try {
             databaseInitializer.close();
@@ -256,9 +256,9 @@ app.on('before-quit', async (event) => {
         } catch (closeError) {
             console.warn('[Shutdown] Error closing database:', closeError.message);
         }
-        
+
         console.log('[Shutdown] Graceful shutdown completed successfully');
-        
+
     } catch (error) {
         console.error('[Shutdown] Error during graceful shutdown:', error);
         // Continue with shutdown even if there were errors
@@ -282,12 +282,18 @@ function setupWebDataHandlers() {
     const askRepository = require('./features/ask/repositories');
     const userRepository = require('./features/common/repositories/user');
     const personalizeRepository = require('./features/common/repositories/preset');
+    const assistantService = require('./features/assistant/assistantService');
 
     const handleRequest = async (channel, responseChannel, payload) => {
         let result;
         // const currentUserId = authService.getCurrentUserId(); // No longer needed here
         try {
             switch (channel) {
+                // ASSISTANT
+                case 'assistant-chat':
+                    result = await assistantService.handleChat(payload.sessionId, payload.message);
+                    break;
+
                 // SESSION
                 case 'get-sessions':
                     // Adapter injects UID
@@ -326,14 +332,14 @@ function setupWebDataHandlers() {
                 case 'get-active-session':
                     result = await sessionRepository.getActiveSession();
                     break;
-                
+
                 // USER
                 case 'get-user-profile':
                     // Adapter injects UID
                     result = await userRepository.getById();
                     break;
                 case 'update-user-profile':
-                     // Adapter injects UID
+                    // Adapter injects UID
                     result = await userRepository.update(payload);
                     break;
                 case 'find-or-create-user':
@@ -353,13 +359,13 @@ function setupWebDataHandlers() {
                     result = await userRepository.deleteById();
                     break;
 
-                
-                
+
+
                 // BATCH
                 case 'get-batch-data':
                     const includes = payload ? payload.split(',').map(item => item.trim()) : ['profile', 'personalize', 'sessions'];
                     const promises = {};
-            
+
                     if (includes.includes('profile')) {
                         // Adapter injects UID
                         promises.profile = userRepository.getById();
@@ -371,7 +377,7 @@ function setupWebDataHandlers() {
                         // Adapter injects UID
                         promises.sessions = sessionRepository.getAllByUserId();
                     }
-                    
+
                     const batchResult = {};
                     const promiseResults = await Promise.all(Object.values(promises));
                     Object.keys(promises).forEach((key, index) => {
@@ -390,38 +396,38 @@ function setupWebDataHandlers() {
             eventBridge.emit(responseChannel, { success: false, error: error.message });
         }
     };
-    
+
     eventBridge.on('web-data-request', handleRequest);
 }
 
 async function handleCustomUrl(url) {
     try {
         console.log('[Custom URL] Processing URL:', url);
-        
+
         // Validate and clean URL
         if (!url || typeof url !== 'string' || !url.startsWith('jarvis://')) {
             console.error('[Custom URL] Invalid URL format:', url);
             return;
         }
-        
+
         // Clean up URL by removing problematic characters
         const cleanUrl = url.replace(/[\\₩]/g, '');
-        
+
         // Additional validation
         if (cleanUrl !== url) {
             console.log('[Custom URL] Cleaned URL from:', url, 'to:', cleanUrl);
             url = cleanUrl;
         }
-        
+
         const urlObj = new URL(url);
         const action = urlObj.hostname;
         const params = Object.fromEntries(urlObj.searchParams);
-        
+
         console.log('[Custom URL] Action:', action, 'Params:', params);
 
         switch (action) {
             case 'login':
-            
+
             case 'personalize':
                 handlePersonalizeFromUrl(params);
                 break;
@@ -431,7 +437,7 @@ async function handleCustomUrl(url) {
                 if (header) {
                     if (header.isMinimized()) header.restore();
                     header.focus();
-                    
+
                     const targetUrl = `http://localhost:${WEB_PORT}/${action}`;
                     console.log(`[Custom URL] Navigating webview to: ${targetUrl}`);
                     header.webContents.loadURL(targetUrl);
@@ -447,18 +453,18 @@ async function handleCustomUrl(url) {
 
 function handlePersonalizeFromUrl(params) {
     console.log('[Custom URL] Personalize params:', params);
-    
+
     const { windowPool } = require('./window/windowManager.js');
     const header = windowPool.get('header');
-    
+
     if (header) {
         if (header.isMinimized()) header.restore();
         header.focus();
-        
+
         const personalizeUrl = `http://localhost:${WEB_PORT}/settings`;
         console.log(`[Custom URL] Navigating to personalize page: ${personalizeUrl}`);
         header.webContents.loadURL(personalizeUrl);
-        
+
         BrowserWindow.getAllWindows().forEach(win => {
             win.webContents.send('enter-personalize-mode', {
                 message: 'Personalization mode activated',
@@ -472,108 +478,108 @@ function handlePersonalizeFromUrl(params) {
 
 
 async function startWebStack() {
-  console.log('NODE_ENV =', process.env.NODE_ENV); 
-  const isDev = !app.isPackaged;
+    console.log('NODE_ENV =', process.env.NODE_ENV);
+    const isDev = !app.isPackaged;
 
-  const getAvailablePort = () => {
-    return new Promise((resolve, reject) => {
-      const server = require('net').createServer();
-      server.listen(0, (err) => {
-        if (err) reject(err);
-        const port = server.address().port;
-        server.close(() => resolve(port));
-      });
+    const getAvailablePort = () => {
+        return new Promise((resolve, reject) => {
+            const server = require('net').createServer();
+            server.listen(0, (err) => {
+                if (err) reject(err);
+                const port = server.address().port;
+                server.close(() => resolve(port));
+            });
+        });
+    };
+
+    const apiPort = await getAvailablePort();
+    const frontendPort = await getAvailablePort();
+
+    console.log(`🔧 Allocated ports: API=${apiPort}, Frontend=${frontendPort}`);
+
+    process.env.jarvis_API_PORT = apiPort.toString();
+    process.env.jarvis_API_URL = `http://localhost:${apiPort}`;
+    process.env.jarvis_WEB_PORT = frontendPort.toString();
+    process.env.jarvis_WEB_URL = `http://localhost:${frontendPort}`;
+
+    console.log(`🌍 Environment variables set:`, {
+        jarvis_API_URL: process.env.jarvis_API_URL,
+        jarvis_WEB_URL: process.env.jarvis_WEB_URL
     });
-  };
 
-  const apiPort = await getAvailablePort();
-  const frontendPort = await getAvailablePort();
+    const createBackendApp = require('../jarvis_web/backend_node');
+    const nodeApi = createBackendApp(eventBridge);
 
-  console.log(`🔧 Allocated ports: API=${apiPort}, Frontend=${frontendPort}`);
+    const staticDir = app.isPackaged
+        ? path.join(process.resourcesPath, 'out')
+        : path.join(__dirname, '..', 'jarvis_web', 'out');
 
-  process.env.jarvis_API_PORT = apiPort.toString();
-  process.env.jarvis_API_URL = `http://localhost:${apiPort}`;
-  process.env.jarvis_WEB_PORT = frontendPort.toString();
-  process.env.jarvis_WEB_URL = `http://localhost:${frontendPort}`;
+    const fs = require('fs');
 
-  console.log(`🌍 Environment variables set:`, {
-    jarvis_API_URL: process.env.jarvis_API_URL,
-    jarvis_WEB_URL: process.env.jarvis_WEB_URL
-  });
-
-  const createBackendApp = require('../jarvis_web/backend_node');
-  const nodeApi = createBackendApp(eventBridge);
-
-  const staticDir = app.isPackaged
-    ? path.join(process.resourcesPath, 'out')
-    : path.join(__dirname, '..', 'jarvis_web', 'out');
-
-  const fs = require('fs');
-
-  if (!fs.existsSync(staticDir)) {
-    console.error(`============================================================`);
-    console.error(`[ERROR] Frontend build directory not found!`);
-    console.error(`Path: ${staticDir}`);
-    console.error(`Please run 'npm run build' inside the 'jarvis_web' directory first.`);
-    console.error(`============================================================`);
-    app.quit();
-    return;
-  }
-
-  const runtimeConfig = {
-    API_URL: `http://localhost:${apiPort}`,
-    WEB_URL: `http://localhost:${frontendPort}`,
-    timestamp: Date.now()
-  };
-  
-  // 쓰기 가능한 임시 폴더에 런타임 설정 파일 생성
-  const tempDir = app.getPath('temp');
-  const configPath = path.join(tempDir, 'runtime-config.json');
-  fs.writeFileSync(configPath, JSON.stringify(runtimeConfig, null, 2));
-  console.log(`📝 Runtime config created in temp location: ${configPath}`);
-
-  const frontSrv = express();
-  
-  // 프론트엔드에서 /runtime-config.json을 요청하면 임시 폴더의 파일을 제공
-  frontSrv.get('/runtime-config.json', (req, res) => {
-    res.sendFile(configPath);
-  });
-
-  frontSrv.use((req, res, next) => {
-    if (req.path.indexOf('.') === -1 && req.path !== '/') {
-      const htmlPath = path.join(staticDir, req.path + '.html');
-      if (fs.existsSync(htmlPath)) {
-        return res.sendFile(htmlPath);
-      }
+    if (!fs.existsSync(staticDir)) {
+        console.error(`============================================================`);
+        console.error(`[ERROR] Frontend build directory not found!`);
+        console.error(`Path: ${staticDir}`);
+        console.error(`Please run 'npm run build' inside the 'jarvis_web' directory first.`);
+        console.error(`============================================================`);
+        app.quit();
+        return;
     }
-    next();
-  });
-  
-  frontSrv.use(express.static(staticDir));
-  
-  const frontendServer = await new Promise((resolve, reject) => {
-    const server = frontSrv.listen(frontendPort, '127.0.0.1', () => resolve(server));
-    server.on('error', reject);
-    app.once('before-quit', () => server.close());
-  });
 
-  console.log(`✅ Frontend server started on http://localhost:${frontendPort}`);
+    const runtimeConfig = {
+        API_URL: `http://localhost:${apiPort}`,
+        WEB_URL: `http://localhost:${frontendPort}`,
+        timestamp: Date.now()
+    };
 
-  const apiSrv = express();
-  apiSrv.use(nodeApi);
+    // 쓰기 가능한 임시 폴더에 런타임 설정 파일 생성
+    const tempDir = app.getPath('temp');
+    const configPath = path.join(tempDir, 'runtime-config.json');
+    fs.writeFileSync(configPath, JSON.stringify(runtimeConfig, null, 2));
+    console.log(`📝 Runtime config created in temp location: ${configPath}`);
 
-  const apiServer = await new Promise((resolve, reject) => {
-    const server = apiSrv.listen(apiPort, '127.0.0.1', () => resolve(server));
-    server.on('error', reject);
-    app.once('before-quit', () => server.close());
-  });
+    const frontSrv = express();
 
-  console.log(`✅ API server started on http://localhost:${apiPort}`);
+    // 프론트엔드에서 /runtime-config.json을 요청하면 임시 폴더의 파일을 제공
+    frontSrv.get('/runtime-config.json', (req, res) => {
+        res.sendFile(configPath);
+    });
 
-  console.log(`🚀 All services ready:
+    frontSrv.use((req, res, next) => {
+        if (req.path.indexOf('.') === -1 && req.path !== '/') {
+            const htmlPath = path.join(staticDir, req.path + '.html');
+            if (fs.existsSync(htmlPath)) {
+                return res.sendFile(htmlPath);
+            }
+        }
+        next();
+    });
+
+    frontSrv.use(express.static(staticDir));
+
+    const frontendServer = await new Promise((resolve, reject) => {
+        const server = frontSrv.listen(frontendPort, '127.0.0.1', () => resolve(server));
+        server.on('error', reject);
+        app.once('before-quit', () => server.close());
+    });
+
+    console.log(`✅ Frontend server started on http://localhost:${frontendPort}`);
+
+    const apiSrv = express();
+    apiSrv.use(nodeApi);
+
+    const apiServer = await new Promise((resolve, reject) => {
+        const server = apiSrv.listen(apiPort, '127.0.0.1', () => resolve(server));
+        server.on('error', reject);
+        app.once('before-quit', () => server.close());
+    });
+
+    console.log(`✅ API server started on http://localhost:${apiPort}`);
+
+    console.log(`🚀 All services ready:
    Frontend: http://localhost:${frontendPort}
    API:      http://localhost:${apiPort}`);
 
-  return frontendPort;
+    return frontendPort;
 }
 
